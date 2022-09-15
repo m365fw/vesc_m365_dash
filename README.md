@@ -5,13 +5,15 @@ Connect your XIAOMI MI SCOOTER M365 (PRO) BLE to VESC controller.
 Read this guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
 
 ## Implemented
-Features to be added:
 - [x] Add speed modes (double tap on button)
 - [x] Add lock mode with beeping and braking (double press while braking)
 - [x] Add min-speed feature (makes it more secure)
 - [x] Add shutdown feature (turn it off by long press and back on by single tap)
 - [x] Add battery in idle feature
 - [x] Add separate ADC version
+
+Features to be added:
+- [ ] App communication
 
 ## Fixed to be done
 - [x] ~~Figure out why 0x64 packets are not being read. (on my setup)~~ (Can be ignored due to the fact that we do not have to receive any 0x64 packets to sent our own 0x64 back)
