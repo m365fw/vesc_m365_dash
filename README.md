@@ -23,8 +23,8 @@ Features to be added:
 - Original DE-Edition PRO 2 Dashboard
 
 ### VESCs
-Flipsky 75100 (https://s.click.aliexpress.com/e/_A5gtoF)
-Ubox Single 100v 100A
+Flipsky 75100 (https://s.click.aliexpress.com/e/_A5gtoF or https://banggood.onelink.me/zMT7/zmenvmm2) \
+Ubox Single 100v 100A (https://spintend.com/products/single-ubox-100v-100a-motor-controller-based-on-vesc -- not recommend, bad thermal design)
 
 #### Requirements on VESC
 Requires 6.0 BETA VESC firmware.
