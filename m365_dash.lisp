@@ -235,6 +235,9 @@
                 (setvar 'off 0) ; turn on
                 (setvar 'feedback 1) ; beep feedback
                 (stats-reset) ; reset stats when turning on
+                (if (= speedmode 5)) ; if it was in secret mode, turn it back to sport mode
+                    (setvar 'speedmode 4)
+                )
                 (apply-mode) ; Apply mode on start-up
             )
             (setvar 'light (bitwise-xor light 1)) ; toggle light
