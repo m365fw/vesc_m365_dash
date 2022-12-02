@@ -1,4 +1,4 @@
-; M365 dashboard compability lisp script by Netzpfuscher
+; M365 dashboard compability lisp script v0.1 by Netzpfuscher
 ; Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with R470 Resistor
 
 (app-adc-detach 3 1) ; Detach ADC1/2 and cc/rev button from APP
