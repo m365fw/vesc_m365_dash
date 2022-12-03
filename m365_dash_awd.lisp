@@ -259,10 +259,10 @@
         (if (>= presses 2) ; double press
             (progn
                 (if (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone) ; if brake is pressed
-                    (if (and (= secret-enabled 1) (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone))
+                    (if (and (= secret-enabled 1) (> (/(- throttle-in cal-thr-lo) cal-thr-hi) thr-deadzone))
                         (progn
                             (setvar 'speedmode 5)
-                            (setvar 'feedback 1) ; beep feedback
+                            (setvar 'feedback 2) ; beep 2x
                             (apply-mode speedmode)
                         )
                         (progn

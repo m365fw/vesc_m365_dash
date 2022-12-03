@@ -1,4 +1,4 @@
-; M365 dashboard compability lisp script v0.2 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v0.3 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
 ; Tested on VESC BETA 83 on PRO2
@@ -245,10 +245,10 @@
         (if (>= presses 2) ; double press
             (progn
                 (if (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone) ; if brake is pressed
-                    (if (and (= secret-enabled 1) (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone))
+                    (if (and (= secret-enabled 1) (> (/(- throttle-in cal-thr-lo) cal-thr-hi) thr-deadzone))
                         (progn
                             (setvar 'speedmode 5)
-                            (setvar 'feedback 1) ; beep feedback
+                            (setvar 'feedback 2) ; beep 2x
                             (apply-mode speedmode)
                         )
                         (progn
