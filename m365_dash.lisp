@@ -1,4 +1,4 @@
-; M365 dashboard compability lisp script v0.3 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v0.4 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
 ; Tested on VESC BETA 83 on PRO2
@@ -200,7 +200,7 @@
                 (progn
                     (setvar 'len (bufget-u8 uart-buf 2))
                     (setvar 'crc len)
-                    (if (> len 0) 
+                    (if (and (> len 0) (<= len 60)) ; max 64 bytes
                         (progn
                             (uart-read-bytes uart-buf (+ len 4) 0)
                             (looprange i 0 len
