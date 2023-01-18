@@ -200,7 +200,7 @@
                 (progn
                     (setvar 'len (bufget-u8 uart-buf 2))
                     (setvar 'crc len)
-                    (if (and (> len 0) (<= len 60)) ; max 64 bytes
+                    (if (and (> len 0) (< len 60)) ; max 64 bytes
                         (progn
                             (uart-read-bytes uart-buf (+ len 4) 0)
                             (looprange i 0 len
