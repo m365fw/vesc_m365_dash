@@ -21,11 +21,6 @@ Features to be added:
 - [x] ~~Figure out why 0x64 packets are not being read. (on my setup)~~ (Can be ignored due to the fact that we do not have to receive any 0x64 packets to sent our own 0x64 back)
 - [x] ~~Figure out why button reading is randomly~~ (can be fixed with 470R resistor between 3.3v and RX and capacitor on 3.3v+GND)
 
-## Known issues
-- Script can crash due to CPU overload (can be fixed by lowering the Zero Vector Frequency in the VESC Tool) \
-    (I am working on a faster implementation using the native library support)
-
-
 ## Tested on
 ### BLEs
 - Clone M365 PRO Dashboard (https://s.click.aliexpress.com/e/_9JHFDN)
