@@ -1,7 +1,7 @@
-; M365 dashboard compability lisp script v0.4 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v0.5 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
-; Tested on VESC BETA 83 on PRO2
+; Tested on VESC 6.0 on PRO2 w/ Makerbase 75100 Alu PCB
 
 ; **** User parameters ****
 ;Calibrate throttle min max
@@ -33,9 +33,15 @@
 (define sport-watts 700) ; or 1500000
 
 (define secret-enabled 1)
-(define secret-speed (/ 400 3.6))
-(define secret-current 1.0)
-(define secret-watts 1500000)
+(define secret-eco-speed (/ 25 3.6))
+(define secret-eco-current 0.6)
+(define secret-eco-watts 1500000)
+(define secret-drive-speed (/ 45 3.6))
+(define secret-drive-current 0.8)
+(define secret-drive-watts 1500000)
+(define secret-sport-speed (/ 400 3.6))
+(define secret-sport-current 1.0)
+(define secret-sport-watts 1500000)
 
 ; **** Code section ****
 (uart-start 115200 'half-duplex)
@@ -68,6 +74,7 @@
 (define off 0)
 (define lock 0)
 (define speedmode 4)
+(define unlock 0)
 
 ; Sound feedback
 
@@ -166,7 +173,7 @@
         )
 
         ; speed field
-        (if (= show-batt-in-idle 1)
+        (if (= (+ show-batt-in-idle unlock) 2)
             (if (> (* (get-speed) 3.6) 1)
                 (bufset-u8 tx-frame 10 (* (get-speed) 3.6))
                 (bufset-u8 tx-frame 10 (*(get-batt) 100)))
@@ -234,11 +241,9 @@
             (progn
                 (setvar 'off 0) ; turn on
                 (setvar 'feedback 1) ; beep feedback
-                (stats-reset) ; reset stats when turning on
-                (if (= speedmode 5) ; if it was in secret mode, turn it back to sport mode
-                    (setvar 'speedmode 4)
-                )
+                (setvar 'unlock 0) ; Disable unlock on turn off
                 (apply-mode) ; Apply mode on start-up
+                (stats-reset) ; reset stats when turning on
             )
             (setvar 'light (bitwise-xor light 1)) ; toggle light
         )
@@ -247,9 +252,9 @@
                 (if (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone) ; if brake is pressed
                     (if (and (= secret-enabled 1) (> (/(- throttle-in cal-thr-lo) cal-thr-hi) thr-deadzone))
                         (progn
-                            (setvar 'speedmode 5)
+                            (setvar 'unlock (bitwise-xor unlock 1))
                             (setvar 'feedback 2) ; beep 2x
-                            (apply-mode speedmode)
+                            (apply-mode)
                         )
                         (progn
                             (setvar 'lock (bitwise-xor lock 1)) ; lock on or off
@@ -265,12 +270,12 @@
                                 (progn
                                     (setvar 'speedmode 1)
                                 )
-                                (if (or (= speedmode 4) (= speedmode 5))
+                                (if (or (= speedmode 4))
                                     (setvar 'speedmode 2)
                                 )
                             )
                         )
-                        (apply-mode speedmode)
+                        (apply-mode)
                     )
                 )
             )
@@ -282,6 +287,8 @@
     (progn
         (if (= (+ lock off) 0) ; it is locked and off?
             (progn
+                (setvar 'unlock 0) ; Disable unlock on turn off
+                (apply-mode)
                 (setvar 'off 1) ; turn off
                 (setvar 'feedback 1) ; beep feedback
             )
@@ -299,14 +306,22 @@
 ; Speed mode implementation
 
 (defun apply-mode()
-    (if (= speedmode 1)
-        (configure-speed drive-speed drive-watts drive-current)
-        (if (= speedmode 2)
-            (configure-speed eco-speed eco-watts eco-current)
-            (if (= speedmode 4)
-                (configure-speed sport-speed sport-watts sport-current)
-                (if (= speedmode 5)
-                    (configure-speed secret-speed secret-watts secret-current)
+    (if (= unlock 0)
+        (if (= speedmode 1)
+            (configure-speed drive-speed drive-watts drive-current)
+            (if (= speedmode 2)
+                (configure-speed eco-speed eco-watts eco-current)
+                (if (= speedmode 4)
+                    (configure-speed sport-speed sport-watts sport-current)
+                )
+            )
+        )
+        (if (= speedmode 1)
+            (configure-speed secret-drive-speed secret-drive-watts secret-drive-current)
+            (if (= speedmode 2)
+                (configure-speed secret-eco-speed secret-eco-watts secret-eco-current)
+                (if (= speedmode 4)
+                    (configure-speed secret-sport-speed secret-sport-watts secret-sport-current)
                 )
             )
         )
