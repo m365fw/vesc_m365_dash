@@ -10,11 +10,13 @@ Read one of the guides below to get started.
 
 ## Implemented
 - [x] Add speed modes (double tap on button)
+- [x] Add secret speed mode (hold throttle and brake, double press)
 - [x] Add lock mode with beeping and braking (double press while braking)
 - [x] Add min-speed feature (makes it more secure)
 - [x] Add shutdown feature (turn it off by long press and back on by single tap)
 - [x] Add battery in idle feature
 - [x] Add separate ADC version
+- [x] Add temperature notification icon (60°C)
 
 Features to be added:
 - [ ] App communication
