@@ -119,6 +119,7 @@
                         (set-current-rel throttle)
                         (if (= unlock 1)
                             (canset-current-rel slave-can throttle)
+                            (canset-current-rel slave-can 0)
                         )
                     )
                     (progn
