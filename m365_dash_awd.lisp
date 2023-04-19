@@ -55,7 +55,7 @@
 (bufset-u16 tx-frame 2 0x0821)
 (bufset-u16 tx-frame 4 0x6400)
 
-(define uart-buf (array-create type-byte 64))
+(define uart-buf (array-create 64))
 (define current-speed 0)
 (define throttle-in 0)
 (define throttle 0)
