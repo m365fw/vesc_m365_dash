@@ -6,6 +6,7 @@ Do you want to use your Xiaomi M365 (PRO) with a VESC controller? This is the ri
 We are using the BLE of the Xiaomi M365 (PRO) to communicate with the VESC controller. \
 Read one of the guides below to get started.
 
+- [DE Guide](/guide/DE.md)
 - [German Rollerplausch Guide](https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/)
 
 ## Implemented
