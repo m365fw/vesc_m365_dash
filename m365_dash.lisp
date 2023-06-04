@@ -1,12 +1,12 @@
-; M365 dashboard compability lisp script v0.6 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v0.7 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
-; Tested on VESC 6.0 on PRO2 w/ Makerbase 75100 Alu PCB
+; Tested on VESC 6.05 on PRO2 w/ Makerbase 75100 Alu PCB
 
 ; **** User parameters ****
 ;Calibrate throttle min max
 (define cal-thr-lo 41.0)
-(define cal-thr-hi 167.0)
+(define cal-thr-hi 150.0)
 (define thr-deadzone 0.05)
 
 ;Calibrate brake min max
@@ -34,12 +34,12 @@
 
 (define secret-enabled 1)
 (define secret-eco-speed (/ 27 3.6))
-(define secret-eco-current 0.6)
-(define secret-eco-watts 1500000)
+(define secret-eco-current 0.8)
+(define secret-eco-watts 1200)
 (define secret-drive-speed (/ 47 3.6))
-(define secret-drive-current 0.8)
-(define secret-drive-watts 1500000)
-(define secret-sport-speed (/ 400 3.6))
+(define secret-drive-current 0.9)
+(define secret-drive-watts 1500)
+(define secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
 (define secret-sport-current 1.0)
 (define secret-sport-watts 1500000)
 
@@ -141,7 +141,7 @@
             (bufset-u8 tx-frame 6 16)
             (if (= lock 1)
                 (bufset-u8 tx-frame 6 32) ; lock display
-                (if (< (get-temp-fet) 60) ; temp icon will show up above 60 degree
+                (if (or (< (get-temp-fet) 60) (< (get-temp-mot) 60)) ; temp icon will show up when motor or MOSFETs above 60 degree celsius (140 fahrenheit)
                     (bufset-u8 tx-frame 6 speedmode)
                     (bufset-u8 tx-frame 6 (+ 128 speedmode))
                 )
@@ -257,6 +257,8 @@
                             (apply-mode)
                         }
                         {
+                            (setvar 'unlock 0)
+                            (apply-mode)
                             (setvar 'lock (bitwise-xor lock 1)) ; lock on or off
                             (setvar 'feedback 1) ; beep feedback
                         }
