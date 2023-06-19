@@ -16,7 +16,6 @@
 (define brk-minspeed 1)
 
 (define light-default 0)
-(define show-faults 1)
 (define show-batt-in-idle 1)
 (define min-speed 1)
 (define button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
@@ -181,9 +180,7 @@
         )
         
         ; error field
-        (if (= show-faults 1)
-            (bufset-u8 tx-frame 11 (get-fault))
-        )
+        (bufset-u8 tx-frame 11 (get-fault))
 
         ; calc crc
 
