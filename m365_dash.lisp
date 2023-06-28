@@ -124,9 +124,9 @@
             (bufset-u8 tx-frame 6 16)
             (if (= lock 1)
                 (bufset-u8 tx-frame 6 32) ; lock display
-                (if (or (< (get-temp-fet) 60) (< (get-temp-mot) 60)) ; temp icon will show up when motor or MOSFETs above 60 degree celsius (140 fahrenheit)
-                    (bufset-u8 tx-frame 6 speedmode)
+                (if (or (> (get-temp-fet) 60) (> (get-temp-mot) 60)) ; temp icon will show up above 60 degree
                     (bufset-u8 tx-frame 6 (+ 128 speedmode))
+                    (bufset-u8 tx-frame 6 speedmode)
                 )
                 
             )
