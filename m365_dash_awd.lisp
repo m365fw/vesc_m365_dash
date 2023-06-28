@@ -31,13 +31,13 @@
 (define sport-watts 700) ; or 1500000
 
 (define secret-enabled 1)
-(define secret-eco-speed (/ 25 3.6))
-(define secret-eco-current 0.6)
-(define secret-eco-watts 1500000)
-(define secret-drive-speed (/ 45 3.6))
-(define secret-drive-current 0.8)
-(define secret-drive-watts 1500000)
-(define secret-sport-speed (/ 400 3.6))
+(define secret-eco-speed (/ 27 3.6))
+(define secret-eco-current 0.8)
+(define secret-eco-watts 1200)
+(define secret-drive-speed (/ 47 3.6))
+(define secret-drive-current 0.9)
+(define secret-drive-watts 1500)
+(define secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
 (define secret-sport-current 1.0)
 (define secret-sport-watts 1500000)
 
