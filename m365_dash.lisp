@@ -1,4 +1,4 @@
-; M365 dashboard compability lisp script v0.5 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v0.6 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
 ; Tested on VESC 6.0 on PRO2 w/ Makerbase 75100 Alu PCB
@@ -6,17 +6,15 @@
 ; **** User parameters ****
 ;Calibrate throttle min max
 (define cal-thr-lo 41.0)
-(define cal-thr-hi 167.0)
+(define cal-thr-hi 155.0)
 (define thr-deadzone 0.05)
 
 ;Calibrate brake min max
 (define cal-brk-lo 39.0)
-(define cal-brk-hi 179.0)
+(define cal-brk-hi 160.0)
 (define brk-deadzone 0.05)
 (define brk-minspeed 1)
 
-(define light-default 0)
-(define show-faults 1)
 (define show-batt-in-idle 1)
 (define min-speed 1)
 (define button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
@@ -33,13 +31,13 @@
 (define sport-watts 700) ; or 1500000
 
 (define secret-enabled 1)
-(define secret-eco-speed (/ 25 3.6))
-(define secret-eco-current 0.6)
-(define secret-eco-watts 1500000)
-(define secret-drive-speed (/ 45 3.6))
-(define secret-drive-current 0.8)
-(define secret-drive-watts 1500000)
-(define secret-sport-speed (/ 400 3.6))
+(define secret-eco-speed (/ 27 3.6))
+(define secret-eco-current 0.8)
+(define secret-eco-watts 1200)
+(define secret-drive-speed (/ 47 3.6))
+(define secret-drive-current 0.9)
+(define secret-drive-watts 1500)
+(define secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
 (define secret-sport-current 1.0)
 (define secret-sport-watts 1500000)
 
@@ -60,7 +58,6 @@
 (define brake 0)
 (define buttonold 0)
 (define light 0)
-(setvar 'light light-default)
 (define c-out 0)
 (define code 0)
 
@@ -141,9 +138,9 @@
             (bufset-u8 tx-frame 6 16)
             (if (= lock 1)
                 (bufset-u8 tx-frame 6 32) ; lock display
-                (if (< (get-temp-fet) 60) ; temp icon will show up above 60 degree
-                    (bufset-u8 tx-frame 6 speedmode)
+                (if (or (> (get-temp-fet) 60) (> (get-temp-mot) 60)) ; temp icon will show up above 60 degree
                     (bufset-u8 tx-frame 6 (+ 128 speedmode))
+                    (bufset-u8 tx-frame 6 speedmode)
                 )
                 
             )
@@ -181,9 +178,7 @@
         )
         
         ; error field
-        (if (= show-faults 1)
-            (bufset-u8 tx-frame 11 (get-fault))
-        )
+        (bufset-u8 tx-frame 11 (get-fault))
 
         ; calc crc
 
