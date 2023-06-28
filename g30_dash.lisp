@@ -1,7 +1,7 @@
 ; G30 dashboard compability lisp script v0.6 by AKA13 and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
-; Tested on VESC 6.2 on G30D w/ MP2
+; Tested on VESC 6.05 BETA on G30D w/ MP2
 
 ; **** User parameters ****
 ;Calibrate throttle min max
@@ -51,7 +51,7 @@
 (bufset-u16 tx-frame 3 0x2021) ; Packet is from ESC to BLE
 (bufset-u16 tx-frame 5 0x6400) ; Packet is from ESC to BLE
 
-(define uart-buf (array-create type-byte 64))
+(define uart-buf (array-create 64))
 (define current-speed 0)
 (define throttle-in 0)
 (define throttle 0)
