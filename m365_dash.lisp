@@ -94,21 +94,24 @@
 
 (defun handle-features()
     {
-        ; (> current-speed min-speed)
-        
-        (if (= off 1)
-            (if (= (app-is-output-disabled) 0) ; Disable output when scooter is turned off
-                (app-disable-output -1)
+        (if (or (= off 1) (= lock 1))
+            (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
+                {
+                    (app-adc-override 0 0)
+                    (app-adc-override 1 0)
+                    (app-disable-output -1)
+                }
+                
             )
-            (if (= (app-is-output-disabled) 1) ; Enable output when scooter is turned on
+            (if (app-is-output-disabled) ; Enable output when scooter is turned on
                 (app-disable-output 0)
             )
         )
         
-        (if (= lock 1))
+        (if (= lock 1)
             {
                 (set-current-rel 0) ; No current input when locked
-                (if (> current-speed min-speed)
+                (if (> (* (get-speed) 3.6) min-speed)
                     (set-brake-rel 1) ; Full power brake
                     (set-brake-rel 0) ; No brake
                 )
@@ -181,8 +184,6 @@
             }
         )
         
-        
-
         ; write
         (uart-write tx-frame)
     }
@@ -251,16 +252,20 @@
                         }
                     )
                     {
-                        (if (= speedmode 1)
-                            (set 'speedmode 4)
-                            (if (= speedmode 2)
-                                (set 'speedmode 1)
-                                (if (= speedmode 4)
-                                    (set 'speedmode 2)
+                        (if (= lock 0)
+                            {
+                                (if (= speedmode 1)
+                                    (set 'speedmode 4)
+                                    (if (= speedmode 2)
+                                        (set 'speedmode 1)
+                                        (if (= speedmode 4)
+                                            (set 'speedmode 2)
+                                        )
+                                    )
                                 )
-                            )
+                                (apply-mode)
+                            }
                         )
-                        (apply-mode)
                     }
                 )
             }
