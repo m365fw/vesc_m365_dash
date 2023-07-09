@@ -64,7 +64,7 @@
 
 (def feedback 0)
 
-(if (= softare-adc 1)
+(if (= software-adc 1)
     (app-adc-detach 3 1)
     (app-adc-detach 3 0)
 )
