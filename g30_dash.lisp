@@ -335,8 +335,8 @@
     {
         (if (> buttonold (gpio-read 'pin-rx))
             {
-                (setvar 'presses (+ presses 1))
-                (setvar 'presstime (systime))
+                (set 'presses (+ presses 1))
+                (set 'presstime (systime))
             }
             (if (> (- (systime) presstime) 2500) ; after 2500 ms
                 (if (= (gpio-read 'pin-rx) 0) ; check button is still pressed
@@ -362,7 +362,7 @@
             )
         )
 
-        (setvar 'buttonold (gpio-read 'pin-rx))
+        (set 'buttonold (gpio-read 'pin-rx))
 
         (handle-features)
         (sleep 0.05) ; Recude load on the CPU
