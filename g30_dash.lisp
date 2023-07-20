@@ -197,11 +197,13 @@
                             (uart-read-bytes uart-buf (+ len 6) 0) ;read remaining 6 bytes + payload, overwrite buffer
 
                             (let ((code (bufget-u8 uart-buf 2)) (checksum (bufget-u16 uart-buf (+ len 4))))
-                                (looprange i 0 (+ len 4) (setvar 'crc (+ crc (bufget-u8 uart-buf i))))
+                                {
+                                    (looprange i 0 (+ len 4) (setvar 'crc (+ crc (bufget-u8 uart-buf i))))    
                                 
-                                (if (= checksum (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535)) ;If the calculated checksum matches with sent checksum, forward comman
-                                    (handle-frame code)
-                                )
+                                    (if (= checksum (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535)) ;If the calculated checksum matches with sent checksum, forward comman
+                                        (handle-frame code)
+                                    )
+                                }
                             )
                         }
                     )
