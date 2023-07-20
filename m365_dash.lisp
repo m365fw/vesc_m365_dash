@@ -254,14 +254,10 @@
                     {
                         (if (= lock 0)
                             {
-                                (if (= speedmode 1)
-                                    (set 'speedmode 4)
-                                    (if (= speedmode 2)
-                                        (set 'speedmode 1)
-                                        (if (= speedmode 4)
-                                            (set 'speedmode 2)
-                                        )
-                                    )
+                                (cond
+                                    ((= speedmode 1) (set 'speedmode 4))
+                                    ((= speedmode 2) (set 'speedmode 1))
+                                    ((= speedmode 4) (set 'speedmode 2))
                                 )
                                 (apply-mode)
                             }
@@ -323,6 +319,14 @@
         (conf-set 'max-speed speed)
         (conf-set 'l-watt-max watts)
         (conf-set 'l-current-max-scale current)
+        
+        (loopforeach i (can-list-devs)
+            {
+                (can-cmd i (str-merge "(conf-set 'max-speed " (str-from-n speed) ")"))
+                (can-cmd i (str-merge "(conf-set 'l-watt-max " (str-from-n watts) ")"))
+                (can-cmd i (str-merge "(conf-set 'l-current-max-scale " (str-from-n current) ")"))
+            }
+        )
     }
 )
 

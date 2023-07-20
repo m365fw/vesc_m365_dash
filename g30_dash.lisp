@@ -178,35 +178,36 @@
         (setvar 'crcout (bitwise-xor crcout 0xFFFF))
         (bufset-u8 tx-frame 13 crcout)
         (bufset-u8 tx-frame 14 (shr crcout 8))
+
+        ; write
         (uart-write tx-frame)
     }
 )
 
 (defun read-frames()
     (loopwhile t
-        (progn
+        {
             (uart-read-bytes uart-buf 3 0)
             (if (= (bufget-u16 uart-buf 0) 0x5aa5)
-                (progn
+                {
                     (setvar 'len (bufget-u8 uart-buf 2))
                     (setvar 'crc len)
                     (if (and (> len 0) (< len 60)) ; max 64 bytes
-                        (progn
+                        {
                             (uart-read-bytes uart-buf (+ len 6) 0) ;read remaining 6 bytes + payload, overwrite buffer
-							(setvar 'bCmd (bufget-u8 uart-buf 2)) ;save bCmd
-							(setvar 'wChecksumLE (bufget-u16 uart-buf (+ len 4)))
-							(looprange i 0 (+ len 4) ;prepare checksum, add values of bSrcAddr bDstAddr bCmd bArg bPayload to len
-								(setvar 'crc (+ crc (bufget-u8 uart-buf i))))
-								;little-endian is broken, do 0xFFFF xor (16-bit sum of bytes <len bSrcAddr bDstAddr bCmd bArg bPayload[]>)
-							(setvar 'wChecksumLECalculated (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535))
-							(if (= wChecksumLE wChecksumLECalculated);If the calculated checksum matches with sent checksum, forward comman
-                                (handle-frame bCmd)
+
+                            (let ((code (bufget-u8 uart-buf 2)) (checksum (bufget-u16 uart-buf (+ len 4))))
+                                (looprange i 0 (+ len 4) (setvar 'crc (+ crc (bufget-u8 uart-buf i))))
+                                
+                                (if (= checksum (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535)) ;If the calculated checksum matches with sent checksum, forward comman
+                                    (handle-frame code)
+                                )
                             )
-                        )
+                        }
                     )
-                )
+                }
             )
-        )
+        }
     )
 )
 
@@ -253,14 +254,10 @@
                     {
                         (if (= lock 0)
                             {
-                                (if (= speedmode 1)
-                                    (set 'speedmode 4)
-                                    (if (= speedmode 2)
-                                        (set 'speedmode 1)
-                                        (if (= speedmode 4)
-                                            (set 'speedmode 2)
-                                        )
-                                    )
+                                (cond
+                                    ((= speedmode 1) (set 'speedmode 4))
+                                    ((= speedmode 2) (set 'speedmode 1))
+                                    ((= speedmode 4) (set 'speedmode 2))
                                 )
                                 (apply-mode)
                             }
@@ -322,6 +319,14 @@
         (conf-set 'max-speed speed)
         (conf-set 'l-watt-max watts)
         (conf-set 'l-current-max-scale current)
+        
+        (loopforeach i (can-list-devs)
+            {
+                (can-cmd i (str-merge "(conf-set 'max-speed " (str-from-n speed) ")"))
+                (can-cmd i (str-merge "(conf-set 'l-watt-max " (str-from-n watts) ")"))
+                (can-cmd i (str-merge "(conf-set 'l-current-max-scale " (str-from-n current) ")"))
+            }
+        )
     }
 )
 
