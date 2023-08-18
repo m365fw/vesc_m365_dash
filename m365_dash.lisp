@@ -213,6 +213,82 @@
     )
 )
 
+(defun s25c31(buffer) 
+    (let ((frame (array-create 18)))
+    {
+        (bufset-u16 frame 0 0x55AA)
+        (bufset-u16 frame 2 0x0C25)
+        (bufset-u16 frame 4 0x0131)
+        (bufset-u16 frame 6 (*(get-batt) 12400)) ; remaining capacity in mAh
+        (bufset-u8 frame 8 (*(get-batt) 100)) ; charge in percent
+        (bufset-u8 frame 9 0) ; not known
+        (bufset-i16 frame 10 (abs (get-current 0))) ; current mA (todo: check if get-current returns A or mA)
+        (bufset-i16 frame 12 (get-vin)) ; voltage mV (todo: check if get-vin returns V or mV)
+        (bufset-u8 frame 14 (get-temp-fet 0)) ; temp 1
+        (bufset-u8 frame 15 (get-temp-mot)) ; temp 2
+
+        ; calc crc
+        (let (crc 0)
+            {
+                (looprange i 2 16
+                    (set 'crc (+ crc (bufget-u8 frame i))))
+                (let ((c-out (bitwise-xor crc 0xFFFF)))
+                    {
+                        (bufset-u8 frame 16 c-out)
+                        (bufset-u8 frame 17 (shr c-out 8))
+                    }
+                )
+            }
+        )
+        
+        ; write
+        (uart-write frame)
+
+        ; free byte array
+        (free frame)
+    }
+))
+
+(defun s23cb0(buffer) 
+    (let ((frame (array-create 30)))
+    {
+        (bufset-u16 frame 0 0x55AA)
+        (bufset-u16 frame 2 0x2223)
+        (bufset-u16 frame 4 0x01B0)
+        
+        ; skip 8 ...
+
+        (bufset-u8 frame 14 (*(get-batt) 100)) ; battery (does it want charge in percent? or remaining or total capacity in mAh?)
+        (bufset-u8 frame 15 0) ; dummy skip, 1
+        (bufset-i16 frame 16 (abs (* (get-speed) 3.6))) ; speed (why again? is it max speed total or current speed?)
+        (bufset-u16 frame 18 (* (stats 'stat-speed-avg) 3.6)) ; avg speed
+        (bufset-u32 frame 20 0) ; mileage total (no data)
+        (bufset-u16 frame 23 0) ; mileage current (no data)
+        (bufset-u16 frame 25 0) ; power time (no data)
+        (bufset-i16 frame 27 (get-temp-fet 0)) ; mainframe temp)
+
+        ; calc crc
+        (let (crc 0)
+            {
+                (looprange i 2 28
+                    (set 'crc (+ crc (bufget-u8 frame i))))
+                (let ((c-out (bitwise-xor crc 0xFFFF)))
+                    {
+                        (bufset-u8 frame 28 c-out)
+                        (bufset-u8 frame 29 (shr c-out 8))
+                    }
+                )
+            }
+        )
+        
+        ; write
+        (uart-write frame)
+
+        ; free byte array
+        (free frame)
+    }
+))
+
 (defun handle-frame(code)
     {
         (if (and (= code 0x65) (= software-adc 1))
@@ -220,6 +296,8 @@
         )
         
         (update-dash uart-buf)
+        (s25c31 uart-buf)
+        (s23cb0 uart-buf)
     }
 )
 
