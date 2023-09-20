@@ -324,46 +324,49 @@
     }
 )
 
+(defun button-logic()
+    (loopwhile t
+        {
+            (if (> buttonold (gpio-read 'pin-rx))
+                {
+                    (set 'presses (+ presses 1))
+                    (set 'presstime (systime))
+                }
+                (if (> (- (systime) presstime) 2500) ; after 2500 ms
+                    (if (= (gpio-read 'pin-rx) 0) ; check button is still pressed
+                        (if (> (- (systime) presstime) 6000) ; long press after 6000 ms
+                            {
+                                (if (and (<= (get-speed) button-safety-speed) (< (abs (get-current 0)) 0.1))
+                                    (handle-holding-button)
+                                )
+                                (reset-button) ; reset button
+                            }
+                        )
+                        { ; when button not pressed
+                            (if (> presses 0) ; if presses > 0
+                                {
+                                    (if (<= (get-speed) button-safety-speed)
+                                        (handle-button) ; handle button presses
+                                    )
+                                    (reset-button) ; reset button
+                                }
+                            )
+                        }
+                    )
+                )
+            )
+
+            (set 'buttonold (gpio-read 'pin-rx))
+
+            (handle-features)
+            (sleep 0.05) ; Recude load on the CPU
+        }
+    )
+)
+
 ; Apply mode on start-up
 (apply-mode)
 
 ; Spawn UART reading frames thread
 (spawn 150 read-frames)
-
-(loopwhile t
-    {
-        (if (> buttonold (gpio-read 'pin-rx))
-            {
-                (set 'presses (+ presses 1))
-                (set 'presstime (systime))
-            }
-            (if (> (- (systime) presstime) 2500) ; after 2500 ms
-                (if (= (gpio-read 'pin-rx) 0) ; check button is still pressed
-                    (if (> (- (systime) presstime) 6000) ; long press after 6000 ms
-                        {
-                            (if (<= (get-speed) button-safety-speed)
-                                (handle-holding-button)
-                            )
-                            (reset-button) ; reset button
-                        }
-                    )
-                    { ; when button not pressed
-                        (if (> presses 0) ; if presses > 0
-                            {
-                                (if (<= (get-speed) button-safety-speed)
-                                    (handle-button) ; handle button presses
-                                )
-                                (reset-button) ; reset button
-                            }
-                        )
-                    }
-                )
-            )
-        )
-
-        (set 'buttonold (gpio-read 'pin-rx))
-
-        (handle-features)
-        (sleep 0.05) ; Recude load on the CPU
-    }
-)
+(button-logic)
