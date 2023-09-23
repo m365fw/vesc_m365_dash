@@ -310,16 +310,17 @@
 
 (defun configure-speed(speed watts current)
     {
-        (conf-set 'max-speed speed)
-        (conf-set 'l-watt-max watts)
-        (conf-set 'l-current-max-scale current)
-        
+        (set-param 'max-speed speed)
+        (set-param 'l-watt-max watts)
+        (set-param 'l-current-max-scale current)
+    }
+)
+
+(defun set-param (param value can_slave_id_list)
+    {
+        (conf-set param value)
         (loopforeach i (can-list-devs)
-            {
-                (can-cmd i (str-merge "(conf-set 'max-speed " (str-from-n speed) ")"))
-                (can-cmd i (str-merge "(conf-set 'l-watt-max " (str-from-n watts) ")"))
-                (can-cmd i (str-merge "(conf-set 'l-current-max-scale " (str-from-n current) ")"))
-            }
+            (can-cmd i (str-merge "(conf-set " "'" (sym2str param) " " (str-from-n value) ")"))
         )
     }
 )
