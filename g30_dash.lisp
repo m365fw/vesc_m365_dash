@@ -101,6 +101,10 @@
                     (app-adc-override 0 0)
                     (app-adc-override 1 0)
                     (app-disable-output -1)
+                    (set-current 0)
+                    (loopforeach i (can-list-devs)
+                        (canset-current i 0)
+                    )
                 }
                 
             )
