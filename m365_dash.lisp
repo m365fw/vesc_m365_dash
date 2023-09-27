@@ -374,4 +374,4 @@
 
 ; Spawn UART reading frames thread
 (spawn 150 read-frames)
-(button-logic)
+(button-logic) ; Start button logic in main thread - this will block the main thread
