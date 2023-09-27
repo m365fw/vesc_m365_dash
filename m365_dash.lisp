@@ -320,7 +320,7 @@
     }
 )
 
-(defun set-param (param value can_slave_id_list)
+(defun set-param (param value)
     {
         (conf-set param value)
         (loopforeach i (can-list-devs)
