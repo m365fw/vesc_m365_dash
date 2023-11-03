@@ -2,8 +2,7 @@
 Allows you to connect your XIAOMI or NINEBOT display to VESC controller.
 
 ## How
-Do you want to use your Xiaomi M365 (PRO) with a VESC controller? This is the right place for you! \
-We are using the BLE of the Xiaomi M365 (PRO) to communicate with the VESC controller. \
+Do you want to use your Xiaomi or NineBot BLE with a VESC controller? This is the right place for you! \
 Read one of the guides below to get started.
 
 - [DE Guide](/guide/DE.md)
@@ -14,7 +13,7 @@ Read one of the guides below to get started.
 If you are running **VESC 6.02**, use these:
 - **M365**: https://github.com/m365fw/vesc_m365_dash/blob/main/m365_dash.lisp
 - **G30**: https://github.com/m365fw/vesc_m365_dash/blob/main/g30_dash.lisp
-- **How-To** Video: None (Use the Guides linked below)
+- **How-To** Video: None (Use the more detailed guides linked above)
 
 when you are running **VESC 6.05 BETA**, use these:
 - **M365**: https://github.com/m365fw/vesc_m365_dash/blob/6_05_adc/m365_dash.lisp
@@ -74,7 +73,7 @@ Features to be added:
 
 
 #### Requirements on VESC
-Requires 6.0 VESC firmware. \
+Requires 6.2 VESC firmware. \
 Can be found here: https://vesc-project.com/
 
 ## Worth to check out!
