@@ -1,5 +1,5 @@
-# vesc_m365_dash
-Connect your XIAOMI MI SCOOTER M365 (PRO) BLE to VESC controller.
+# VESC M365 Dash
+Allows you to connect your XIAOMI or NINEBOT display to VESC controller.
 
 ## How
 Do you want to use your Xiaomi M365 (PRO) with a VESC controller? This is the right place for you! \
@@ -8,6 +8,27 @@ Read one of the guides below to get started.
 
 - [DE Guide](/guide/DE.md)
 - [German Rollerplausch Guide](https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/)
+
+## Which version should I use?
+
+If you are running **VESC 6.02**, use these:
+- **M365**: https://github.com/m365fw/vesc_m365_dash/blob/main/m365_dash.lisp
+- **G30**: https://github.com/m365fw/vesc_m365_dash/blob/main/g30_dash.lisp
+- **How-To** Video: None (Use the Guides linked below)
+
+when you are running **VESC 6.05 BETA**, use these:
+- **M365**: https://github.com/m365fw/vesc_m365_dash/blob/6_05_adc/m365_dash.lisp
+- **G30** https://github.com/m365fw/vesc_m365_dash/blob/6_05_adc/g30_dash.lisp
+- **How-To** Video: https://www.youtube.com/watch?v=kX8PsaxfoXQ
+
+## How do I wire it?
+<span style="color:rgb(184, 49, 47);">Red </span>to 5V \
+<span style="color:rgb(209, 213, 216);">Black </span>to GND \
+<span style="color:rgb(250, 197, 28);">Yellow </span>to TX (UART-HDX) \
+<span style="color:rgb(97, 189, 109);">Green </span>to RX (Button) \
+1k Ohm Resistor from <span style="color:rgb(251, 160, 38);">3.3V</span> to <span style="color:rgb(97, 189, 109);">RX (Button)</span>
+
+![image](guide/imgs/23999.png)
 
 ## Implemented
 - [x] Add speed modes (double tap on button)
