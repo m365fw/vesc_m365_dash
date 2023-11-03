@@ -53,11 +53,13 @@ Features to be added:
 - Original DE-Edition PRO 2 Dashboard
 
 ### VESCs
+- Ubox (Best choice):
+    - Single Ubox 80v 100A Alu PCB ([Spintend](https://spintend.com/collections/diy-electric-skateboard-parts/products/single-ubox-aluminum-controller-80v-100a-based-on-vesc?ref=1zuna))
 - 75100 Box:
     - Makerbase 75100 VESC ([AliExpress](https://s.click.aliexpress.com/e/_DmJxqxr) - 75€)
     - Flipsky 75100 VESC ([Banggood](https://banggood.onelink.me/zMT7/zmenvmm2) - with Honey Add-On about 87€)
 
-- 75100 Alu PCB (Best choice):
+- 75100 Alu PCB:
     - Makerbase 75100 Alu PCB ([AliExpress](https://s.click.aliexpress.com/e/_DE9TKAl) - 95€)
     - Flipsky 75100 Alu PCB ([AliExpress](https://s.click.aliexpress.com/e/_DEXNhX3) - 151€)
 
@@ -66,11 +68,8 @@ Features to be added:
     - Flipsky 75200 Alu PCB ([AliExpress](https://s.click.aliexpress.com/e/_DkxlJbj) - 266€)
 
 - More recommended VESCs:
-    - Single Ubox 100v 100A ([Spintend](https://spintend.com/products/single-ubox-100v-100a-motor-controller-based-on-vesc))
-    - Single Ubox 80v 100A Alu PCB ([Spintend](https://spintend.com/collections/frontpage/products/single-ubox-aluminum-controller-80v-100a-based-on-vesc))
     - MP2 300A 100V/150V VESC ([GitHub](https://github.com/badgineer/MP2-ESC) - DIY)
     - and many more... use whatever you like.
-
 
 #### Requirements on VESC
 Requires 6.2 VESC firmware. \
