@@ -24,7 +24,7 @@
 (def sport-speed (/ 21 3.6))
 (def sport-current 1.0)
 (def sport-watts 700)
-(def sports-fw 0)
+(def sport-fw 0)
 
 ; Secret speed modes. To enable, press the button 2 times while holding break and throttle at the same time.
 (def secret-enabled 1)
