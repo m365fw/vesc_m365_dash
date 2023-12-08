@@ -344,7 +344,7 @@
                 (var button (gpio-read 'pin-rx))
                 (sleep 0.01) ; wait 10 ms to debounce
                 (var buttonconfirm (gpio-read 'pin-rx))
-                (if (/= button buttonconfirm)
+                (if (not (= button buttonconfirm))
                     (set 'button 0)
                 )
                 
