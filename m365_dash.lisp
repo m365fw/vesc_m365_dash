@@ -176,8 +176,8 @@
         ; calc crc
         (var crc 0)
         (looprange i 2 12
-            (setvar 'crc (+ crc (bufget-u8 tx-frame i))))
-        (setvar 'c-out (bitwise-xor crc 0xFFFF)) 
+            (set 'crc (+ crc (bufget-u8 tx-frame i))))
+        (set 'c-out (bitwise-xor crc 0xFFFF)) 
         (bufset-u8 tx-frame 12 c-out)
         (bufset-u8 tx-frame 13 (shr c-out 8))
         

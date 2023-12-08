@@ -178,8 +178,8 @@
 
         (var crcout 0)
         (looprange i 2 13
-        (setvar 'crcout (+ crcout (bufget-u8 tx-frame i))))
-        (setvar 'crcout (bitwise-xor crcout 0xFFFF))
+        (set 'crcout (+ crcout (bufget-u8 tx-frame i))))
+        (set 'crcout (bitwise-xor crcout 0xFFFF))
         (bufset-u8 tx-frame 13 crcout)
         (bufset-u8 tx-frame 14 (shr crcout 8))
 
@@ -202,7 +202,7 @@
 
                             (let ((code (bufget-u8 uart-buf 2)) (checksum (bufget-u16 uart-buf (+ len 4))))
                                 {
-                                    (looprange i 0 (+ len 4) (setvar 'crc (+ crc (bufget-u8 uart-buf i))))    
+                                    (looprange i 0 (+ len 4) (set 'crc (+ crc (bufget-u8 uart-buf i))))    
                                 
                                     (if (= checksum (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535)) ;If the calculated checksum matches with sent checksum, forward comman
                                         (handle-frame code)
