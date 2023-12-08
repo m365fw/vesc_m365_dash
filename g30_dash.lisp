@@ -176,7 +176,7 @@
 
         ; calc crc
 
-        (setvar 'crcout 0)
+        (var crcout 0)
         (looprange i 2 13
         (setvar 'crcout (+ crcout (bufget-u8 tx-frame i))))
         (setvar 'crcout (bitwise-xor crcout 0xFFFF))
@@ -194,8 +194,8 @@
             (uart-read-bytes uart-buf 3 0)
             (if (= (bufget-u16 uart-buf 0) 0x5aa5)
                 {
-                    (setvar 'len (bufget-u8 uart-buf 2))
-                    (setvar 'crc len)
+                    (var len (bufget-u8 uart-buf 2))
+                    (var crc len)
                     (if (and (> len 0) (< len 60)) ; max 64 bytes
                         {
                             (uart-read-bytes uart-buf (+ len 6) 0) ;read remaining 6 bytes + payload, overwrite buffer
