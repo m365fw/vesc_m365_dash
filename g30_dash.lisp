@@ -43,6 +43,10 @@
 
 ; -> Code starts here (DO NOT CHANGE ANYTHING BELOW THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING)
 
+; Load VESC CAN code serer
+(import "pkg@://vesc_packages/lib_code_server/code_server.vescpkg" 'code-server)
+(read-eval-program code-server)
+
 ; Packet handling
 (uart-start 115200 'half-duplex)
 (gpio-configure 'pin-rx 'pin-mode-in-pu)
@@ -107,9 +111,9 @@
                     (app-adc-override 1 0)
                     (app-disable-output -1)
                     (set-current 0)
-                    (loopforeach i (can-list-devs)
-                        (canset-current i 0)
-                    )
+                    ;(loopforeach i (can-list-devs)
+                    ;    (canset-current i 0)
+                    ;)
                 }
                 
             )
@@ -338,8 +342,11 @@
 (defun set-param (param value)
     {
         (conf-set param value)
-        (loopforeach i (can-list-devs)
-            (can-cmd i (str-merge "(conf-set " "'" (sym2str param) " " (str-from-n value) ")"))
+        (loopforeach id (can-list-devs)
+            (looprange i 0 5 {
+                (if (eq (rcode-run id 0.1 `(conf-set (quote ,param) ,value)) t) (break t))
+                false
+            })
         )
     }
 )
