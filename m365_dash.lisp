@@ -201,8 +201,8 @@
             (uart-read-bytes uart-buf 3 0)
             (if (= (bufget-u16 uart-buf 0) 0x55aa)
                 {
-                    (set 'len (bufget-u8 uart-buf 2))
-                    (set 'crc len)
+                    (var len (bufget-u8 uart-buf 2))
+                    (var crc len)
                     (if (and (> len 0) (< len 60)) ; max 64 bytes
                         {
                             (uart-read-bytes uart-buf (+ len 4) 0)
