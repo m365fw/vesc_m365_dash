@@ -81,17 +81,17 @@
 (defun adc-input(buffer) ; Frame 0x65
     {
         (let ((current-speed (* (get-speed) 3.6))
-            (throttle (/(bufget-u8 uart-buf 4) 255.0))
-            (brake (/(bufget-u8 uart-buf 5) 255.0)))
+            (throttle (/(bufget-u8 uart-buf 4) 77.2)) ; 255/3.3 = 77.2
+            (brake (/(bufget-u8 uart-buf 5) 77.2)))
             {
                 (if (< throttle 0)
                     (setf throttle 0))
-                (if (> throttle 1)
-                    (setf throttle 1))
+                (if (> throttle 3.3)
+                    (setf throttle 3.3))
                 (if (< brake 0)
                     (setf brake 0))
-                (if (> brake 1)
-                    (setf brake 1))
+                (if (> brake 3.3)
+                    (setf brake 3.3))
                 
                 ; Pass through throttle and brake to VESC
                 (app-adc-override 0 throttle)
