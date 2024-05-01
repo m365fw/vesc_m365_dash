@@ -136,6 +136,9 @@
 
 (defun update-dash(buffer) ; Frame 0x64
     {
+        (var current-speed (* (l-speed) 3.6))
+        (var battery (*(get-batt) 100))
+
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
         (if (= off 1)
             (bufset-u8 tx-frame 7 16)
@@ -144,20 +147,19 @@
                 (if (or (> (get-temp-fet) 60) (> (get-temp-mot) 60)) ; temp icon will show up above 60 degree
                     (bufset-u8 tx-frame 7 (+ 128 speedmode))
                     (bufset-u8 tx-frame 7 speedmode)
-                )
-                
+                )            
             )
         )
-        
+                
         ; batt field
-        (bufset-u8 tx-frame 8 (*(get-batt) 100))
+        (bufset-u8 tx-frame 8 battery)
 
         ; light field
         (if (= off 0)
             (bufset-u8 tx-frame 9 light)
             (bufset-u8 tx-frame 9 0)
         )
-        
+                
         ; beep field
         (if (= lock 1)
             (if (> (* (get-speed) 3.6) min-speed)
@@ -174,12 +176,12 @@
 
         ; speed field
         (if (= (+ show-batt-in-idle unlock) 2)
-            (if (> (* (get-speed) 3.6) 1)
-                (bufset-u8 tx-frame 11 (* (get-speed) 3.6))
-                (bufset-u8 tx-frame 11 (*(get-batt) 100)))
-            (bufset-u8 tx-frame 11 (* (get-speed) 3.6))
+            (if (> current-speed 1)
+                (bufset-u8 tx-frame 11 current-speed)
+                (bufset-u8 tx-frame 11 battery))
+            (bufset-u8 tx-frame 11 current-speed)
         )
-        
+                
         ; error field
         (bufset-u8 tx-frame 12 (get-fault))
 
@@ -351,6 +353,22 @@
     }
 )
 
+(defun l-speed()
+    {
+        (var l-speed (get-speed))
+        (loopforeach i (can-list-devs)
+            {
+                (var l-can-speed (canget-speed i))
+                (if (< l-can-speed l-speed)
+                    (set 'l-speed l-can-speed)
+                )
+            }
+        )
+
+        l-speed
+    }
+)
+
 (defun button-logic()
     {
         ; Assume button is not pressed by default
@@ -358,7 +376,7 @@
         (loopwhile t
             {
                 (var button (gpio-read 'pin-rx))
-                (sleep 0.01) ; wait 10 ms to debounce
+                (sleep 0.05) ; wait 50 ms to debounce
                 (var buttonconfirm (gpio-read 'pin-rx))
                 (if (not (= button buttonconfirm))
                     (set 'button 0)
@@ -369,37 +387,43 @@
                         (set 'presses (+ presses 1))
                         (set 'presstime (systime))
                     }
-                    (if (> (- (systime) presstime) 2500) ; after 2500 ms
-                        (if (= button 0) ; check button is still pressed
-                            (if (> (- (systime) presstime) 6000) ; long press after 6000 ms
-                                {
-                                    (if (or (= off 1) (and (<= (get-speed) button-safety-speed) (< (abs (get-current 0)) 0.1)))
-                                        (handle-holding-button)
-                                    )
-                                    (reset-button) ; reset button
-                                }
-                            )
-                            { ; when button not pressed
-                                (if (> presses 0) ; if presses > 0
-                                    {
-                                        (if (or (= off 1) (and (<= (get-speed) button-safety-speed) (< (abs (get-current 0)) 0.1)))
-                                            (handle-button) ; handle button presses
-                                        )
-                                        (reset-button) ; reset button
-                                    }
-                                )
-                            }
-                        )
-                    )
+                    (button-apply button)
                 )
                 
                 (set 'buttonold button)
-
                 (handle-features)
-                (sleep 0.04) ; Recude load on the CPU
             }
         )
     }
+)
+
+(defun button-apply(button)
+    {
+        (var time-passed (- (systime) presstime))
+        (var is-active (or (= off 1) (and (<= (get-speed) button-safety-speed) (< (abs (get-current 0)) 0.1))))
+
+        (if (> time-passed 2500) ; after 2500 ms
+            (if (= button 0) ; check button is still pressed
+                (if (> time-passed 6000) ; long press after 6000 ms
+                    {
+                        (if is-active
+                            (handle-holding-button)
+                        )
+                        (reset-button) ; reset button
+                    }
+                )
+                (if (> presses 0) ; if presses > 0
+                    {
+                        (if is-active
+                            (handle-button) ; handle button presses
+                        )
+                        (reset-button) ; reset button
+                    }
+                )
+            )
+        )
+    }
+
 )
 
 ; Apply mode on start-up
