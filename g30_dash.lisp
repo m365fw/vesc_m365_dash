@@ -1,4 +1,4 @@
-; G30 dashboard compability lisp script v0.8 by AKA13 and 1zuna
+; G30 dashboard compability lisp script v0.9 by AKA13 and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
 ; Tested on VESC 6.05 BETA on G30D w/ MP2
@@ -162,7 +162,7 @@
                 
         ; beep field
         (if (= lock 1)
-            (if (> (* (get-speed) 3.6) min-speed)
+            (if (> current-speed min-speed)
                 (bufset-u8 tx-frame 10 1) ; beep lock
                 (bufset-u8 tx-frame 10 0))
             (if (> feedback 0)
@@ -423,7 +423,6 @@
             )
         )
     }
-
 )
 
 ; Apply mode on start-up
