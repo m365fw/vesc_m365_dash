@@ -391,7 +391,7 @@
 (defun button-apply(button)
     {
         (var time-passed (- (systime) presstime))
-        (var is-active (or (= off 1) (and (<= (get-speed) button-safety-speed) (< (abs (get-current 0)) 0.1))))
+        (var is-active (or (= off 1) (<= (get-speed) button-safety-speed)))
 
         (if (> time-passed 2500) ; after 2500 ms
             (if (= button 0) ; check button is still pressed
