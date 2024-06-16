@@ -103,7 +103,7 @@
 
 (defun handle-features()
     {
-        (if (or (= off 1) (= lock 1))
+        (if (or (or (= off 1) (= lock 1) (< (* (get-speed) 3.6) min-speed)))
             (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
                 {
                     (app-adc-override 0 0)
