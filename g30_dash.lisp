@@ -1,304 +1,310 @@
-; G30 dashboard compability lisp script v0.6 by AKA13 and 1zuna
+; G30 dashboard compability lisp script v0.9 by AKA13 and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
-; Tested on VESC 6.2 on G30D w/ MP2
+; Tested on VESC 6.05 BETA on G30D w/ MP2
 
-; **** User parameters ****
-;Calibrate throttle min max
-(define cal-thr-lo 41.0)
-(define cal-thr-hi 150.0)
-(define thr-deadzone 0.05)
+; -> User parameters (change these to your needs)
+(def software-adc 1)
+(def min-adc-throttle 0.1)
+(def min-adc-brake 0.1)
 
-;Calibrate brake min max
-(define cal-brk-lo 39.0)
-(define cal-brk-hi 155.0)
-(define brk-deadzone 0.05)
-(define brk-minspeed 1)
+(def show-batt-in-idle 1)
+(def min-speed 1)
+(def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
-(define show-batt-in-idle 1)
-(define min-speed 1)
-(define button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
+; Speed modes (km/h, watts, current scale)
+(def eco-speed (/ 7 3.6))
+(def eco-current 0.6)
+(def eco-watts 400)
+(def eco-fw 0)
+(def drive-speed (/ 17 3.6))
+(def drive-current 0.7)
+(def drive-watts 500)
+(def drive-fw 0)
+(def sport-speed (/ 21 3.6))
+(def sport-current 1.0)
+(def sport-watts 700)
+(def sport-fw 0)
 
-; Speed modes with MAX KM/H and MAX WATTS
-(define eco-speed (/ 7 3.6))
-(define eco-current 0.6)
-(define eco-watts 400)
-(define drive-speed (/ 17 3.6))
-(define drive-current 0.7)
-(define drive-watts 500)
-(define sport-speed (/ 21 3.6)) ; or 400
-(define sport-current 1.0)
-(define sport-watts 700) ; or 1500000
+; Secret speed modes. To enable, press the button 2 times while holding break and throttle at the same time.
+(def secret-enabled 1)
+(def secret-eco-speed (/ 27 3.6))
+(def secret-eco-current 0.8)
+(def secret-eco-watts 1200)
+(def secret-eco-fw 0)
+(def secret-drive-speed (/ 47 3.6))
+(def secret-drive-current 0.9)
+(def secret-drive-watts 1500)
+(def secret-drive-fw 0)
+(def secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
+(def secret-sport-current 1.0)
+(def secret-sport-watts 1500000)
+(def secret-sport-fw 10)
 
-(define secret-enabled 1)
-(define secret-eco-speed (/ 27 3.6))
-(define secret-eco-current 0.8)
-(define secret-eco-watts 1200)
-(define secret-drive-speed (/ 47 3.6))
-(define secret-drive-current 0.9)
-(define secret-drive-watts 1500)
-(define secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
-(define secret-sport-current 1.0)
-(define secret-sport-watts 1500000)
+; -> Code starts here (DO NOT CHANGE ANYTHING BELOW THIS LINE IF YOU DON'T KNOW WHAT YOU ARE DOING)
 
-; **** Code section ****
+; Load VESC CAN code serer
+(import "pkg@://vesc_packages/lib_code_server/code_server.vescpkg" 'code-server)
+(read-eval-program code-server)
+
+; Packet handling
 (uart-start 115200 'half-duplex)
 (gpio-configure 'pin-rx 'pin-mode-in-pu)
-
 (define tx-frame (array-create 15))
 (bufset-u16 tx-frame 0 0x5AA5) ;Ninebot protocol
 (bufset-u8 tx-frame 2 0x06) ;Payload length is 5 bytes
 (bufset-u16 tx-frame 3 0x2021) ; Packet is from ESC to BLE
 (bufset-u16 tx-frame 5 0x6400) ; Packet is from ESC to BLE
-
-(define uart-buf (array-create type-byte 64))
-(define current-speed 0)
-(define throttle-in 0)
-(define throttle 0)
-(define brake-in 0)
-(define brake 0)
-(define buttonold 0)
-(define light 0)
-(define c-out 0)
-(define code 0)
+(def uart-buf (array-create 64))
 
 ; Button handling
 
-(define presstime (systime))
-(define presses 0)
+(def presstime (systime))
+(def presses 0)
 
 ; Mode states
 
-(define off 0)
-(define lock 0)
-(define speedmode 4)
-(define unlock 0)
+(def off 0)
+(def lock 0)
+(def speedmode 4)
+(def light 0)
+(def unlock 0)
 
 ; Sound feedback
 
-(define feedback 0)
+(def feedback 0)
+
+(if (= software-adc 1)
+    (app-adc-detach 3 1)
+    (app-adc-detach 3 0)
+)
 
 (defun adc-input(buffer) ; Frame 0x65
-    (progn
-        (setvar 'current-speed (* (get-speed) 3.6))
-        
-        ; Throttle
-        (setvar 'throttle-in (bufget-u8 uart-buf 5))
-        (setvar 'throttle (/(- throttle-in cal-thr-lo) cal-thr-hi))
-        
-        (if (< throttle thr-deadzone)
-            (setvar 'throttle 0)
-        )
-        (if (> throttle 1)
-            (setvar 'throttle 1)
-        )
-        
-        ; Brake
-        (setvar 'brake-in (bufget-u8 uart-buf 6))
-        (setvar 'brake (/(- brake-in cal-brk-lo) cal-brk-hi))
-        
-        (if(< brake brk-deadzone)
-            (setvar 'brake 0)
-        )
-        (if (< current-speed brk-minspeed)
-            (setvar 'brake 0)
-        )
-        (if (> brake 1)
-            (setvar 'brake 1)
-        )
-
-        (if (= (+ off lock) 0)
-            (progn ; Driving mode
-                (if (> current-speed min-speed)
-                    (set-current-rel throttle)
-                    (set-current-rel 0)
-                )
-                (if (not (= brake 0))
-                    (set-brake-rel brake)
-                )
-            )
-            (progn
-                (set-current-rel 0) ; No throttle input when off or locked
+    {
+        (let ((current-speed (* (get-speed) 3.6))
+            (throttle (/(bufget-u8 uart-buf 5) 77.2)) ; 255/3.3 = 77.2
+            (brake (/(bufget-u8 uart-buf 6) 77.2)))
+            {
+                (if (< throttle 0)
+                    (setf throttle 0))
+                (if (> throttle 3.3)
+                    (setf throttle 3.3))
+                (if (< brake 0)
+                    (setf brake 0))
+                (if (> brake 3.3)
+                    (setf brake 3.3))
                 
-                (if (= lock 1) ; Check if it is locked
-                    (if (> current-speed min-speed) ; Brake when being pushed while locked
-                        (set-brake-rel 1) ; Full power brake
-                        (set-brake-rel 0) ; No brake
-                    )
-                    (set-brake-rel 0) ; No brake input when off
-                )
+                ; Pass through throttle and brake to VESC
+                (app-adc-override 0 throttle)
+                (app-adc-override 1 brake)
+            }
+        )
+    }
+)
+
+(defun handle-features()
+    {
+        (if (or (or (= off 1) (= lock 1) (< (* (get-speed) 3.6) min-speed)))
+            (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
+                {
+                    (app-adc-override 0 0)
+                    (app-adc-override 1 0)
+                    (app-disable-output -1)
+                    (set-current 0)
+                    ;(loopforeach i (can-list-devs)
+                    ;    (canset-current i 0)
+                    ;)
+                }
+                
+            )
+            (if (app-is-output-disabled) ; Enable output when scooter is turned on
+                (app-disable-output 0)
             )
         )
-    )
+        
+        (if (= lock 1)
+            {
+                (set-current-rel 0) ; No current input when locked
+                (if (> (* (get-speed) 3.6) min-speed)
+                    (set-brake-rel 1) ; Full power brake
+                    (set-brake-rel 0) ; No brake
+                )
+            }
+        )
+    }
 )
 
 (defun update-dash(buffer) ; Frame 0x64
-    (progn
+    {
+        (var current-speed (* (l-speed) 3.6))
+        (var battery (*(get-batt) 100))
+
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
         (if (= off 1)
             (bufset-u8 tx-frame 7 16)
             (if (= lock 1)
                 (bufset-u8 tx-frame 7 32) ; lock display
-                (if (< (get-temp-fet) 60) ; temp icon will show up above 60 degree
-                    (bufset-u8 tx-frame 7 speedmode)
+                (if (or (> (get-temp-fet) 60) (> (get-temp-mot) 60)) ; temp icon will show up above 60 degree
                     (bufset-u8 tx-frame 7 (+ 128 speedmode))
-                )
-                
+                    (bufset-u8 tx-frame 7 speedmode)
+                )            
             )
         )
-        
+                
         ; batt field
-        (bufset-u8 tx-frame 8 (*(get-batt) 100))
+        (bufset-u8 tx-frame 8 battery)
 
         ; light field
         (if (= off 0)
             (bufset-u8 tx-frame 9 light)
             (bufset-u8 tx-frame 9 0)
         )
-        
+                
         ; beep field
         (if (= lock 1)
-            (if (> (* (get-speed) 3.6) min-speed)
+            (if (> current-speed min-speed)
                 (bufset-u8 tx-frame 10 1) ; beep lock
                 (bufset-u8 tx-frame 10 0))
             (if (> feedback 0)
-                (progn
+                {
                     (bufset-u8 tx-frame 10 1)
-                    (setvar 'feedback (- feedback 1))
-                )
+                    (set 'feedback (- feedback 1))
+                }
                 (bufset-u8 tx-frame 10 0)
             )
         )
 
         ; speed field
         (if (= (+ show-batt-in-idle unlock) 2)
-            (if (> (* (get-speed) 3.6) 1)
-                (bufset-u8 tx-frame 11 (* (get-speed) 3.6))
-                (bufset-u8 tx-frame 11 (*(get-batt) 100)))
-            (bufset-u8 tx-frame 11 (* (get-speed) 3.6))
+            (if (> current-speed 1)
+                (bufset-u8 tx-frame 11 current-speed)
+                (bufset-u8 tx-frame 11 battery))
+            (bufset-u8 tx-frame 11 current-speed)
         )
-        
+                
         ; error field
         (bufset-u8 tx-frame 12 (get-fault))
 
         ; calc crc
 
-        (setvar 'crcout 0)
+        (var crcout 0)
         (looprange i 2 13
-        (setvar 'crcout (+ crcout (bufget-u8 tx-frame i))))
-        (setvar 'crcout (bitwise-xor crcout 0xFFFF))
+        (set 'crcout (+ crcout (bufget-u8 tx-frame i))))
+        (set 'crcout (bitwise-xor crcout 0xFFFF))
         (bufset-u8 tx-frame 13 crcout)
         (bufset-u8 tx-frame 14 (shr crcout 8))
+
+        ; write
         (uart-write tx-frame)
-    )
+    }
 )
 
 (defun read-frames()
     (loopwhile t
-        (progn
+        {
             (uart-read-bytes uart-buf 3 0)
             (if (= (bufget-u16 uart-buf 0) 0x5aa5)
-                (progn
-                    (setvar 'len (bufget-u8 uart-buf 2))
-                    (setvar 'crc len)
+                {
+                    (var len (bufget-u8 uart-buf 2))
+                    (var crc len)
                     (if (and (> len 0) (< len 60)) ; max 64 bytes
-                        (progn
+                        {
                             (uart-read-bytes uart-buf (+ len 6) 0) ;read remaining 6 bytes + payload, overwrite buffer
-							(setvar 'bCmd (bufget-u8 uart-buf 2)) ;save bCmd
-							(setvar 'wChecksumLE (bufget-u16 uart-buf (+ len 4)))
-							(looprange i 0 (+ len 4) ;prepare checksum, add values of bSrcAddr bDstAddr bCmd bArg bPayload to len
-								(setvar 'crc (+ crc (bufget-u8 uart-buf i))))
-								;little-endian is broken, do 0xFFFF xor (16-bit sum of bytes <len bSrcAddr bDstAddr bCmd bArg bPayload[]>)
-							(setvar 'wChecksumLECalculated (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535))
-							(if (= wChecksumLE wChecksumLECalculated);If the calculated checksum matches with sent checksum, forward comman
-                                (handle-frame bCmd)
+
+                            (let ((code (bufget-u8 uart-buf 2)) (checksum (bufget-u16 uart-buf (+ len 4))))
+                                {
+                                    (looprange i 0 (+ len 4) (set 'crc (+ crc (bufget-u8 uart-buf i))))    
+                                
+                                    (if (= checksum (bitwise-and (+ (shr (bitwise-xor crc 0xFFFF) 8) (shl (bitwise-xor crc 0xFFFF) 8)) 65535)) ;If the calculated checksum matches with sent checksum, forward comman
+                                        (handle-frame code)
+                                    )
+                                }
                             )
-                        )
+                        }
                     )
-                )
+                }
             )
-        )
+        }
     )
 )
 
 (defun handle-frame(code)
-    (progn
-        (if(= code 0x65)
+    {
+        (if (and (= code 0x65) (= software-adc 1))
             (adc-input uart-buf)
         )
-
+        
         (if(= code 0x64)
             (update-dash uart-buf)
         )
-    )
+    }
 )
 
 (defun handle-button()
     (if (= presses 1) ; single press
         (if (= off 1) ; is it off? turn on scooter again
-            (progn
-                (setvar 'off 0) ; turn on
-                (setvar 'feedback 1) ; beep feedback
-                (setvar 'unlock 0) ; Disable unlock on turn off
+            {
+                (set 'off 0) ; turn on
+                (set 'feedback 1) ; beep feedback
+                (set 'unlock 0) ; Disable unlock on turn off
                 (apply-mode) ; Apply mode on start-up
                 (stats-reset) ; reset stats when turning on
-            )
-            (setvar 'light (bitwise-xor light 1)) ; toggle light
+            }
+            (set 'light (bitwise-xor light 1)) ; toggle light
         )
         (if (>= presses 2) ; double press
-            (progn
-                (if (> (/(- brake-in cal-brk-lo) cal-brk-hi) brk-deadzone) ; if brake is pressed
-                    (if (and (= secret-enabled 1) (> (/(- throttle-in cal-thr-lo) cal-thr-hi) thr-deadzone))
-                        (progn
-                            (setvar 'unlock (bitwise-xor unlock 1))
-                            (setvar 'feedback 2) ; beep 2x
+            {
+                (if (> (get-adc-decoded 1) min-adc-brake) ; if brake is pressed
+                    (if (and (= secret-enabled 1) (> (get-adc-decoded 0) min-adc-throttle))
+                        {
+                            (set 'unlock (bitwise-xor unlock 1))
+                            (set 'feedback 2) ; beep 2x
                             (apply-mode)
-                        )
-                        (progn
-                            (setvar 'lock (bitwise-xor lock 1)) ; lock on or off
-                            (setvar 'feedback 1) ; beep feedback
-                        )
+                        }
+                        {
+                            (set 'unlock 0)
+                            (apply-mode)
+                            (set 'lock (bitwise-xor lock 1)) ; lock on or off
+                            (set 'feedback 1) ; beep feedback
+                        }
                     )
-                    (progn
-                        (if (= speedmode 1)
-                            (progn
-                                (setvar 'speedmode 4)
-                            )
-                            (if (= speedmode 2)
-                                (progn
-                                    (setvar 'speedmode 1)
+                    {
+                        (if (= lock 0)
+                            {
+                                (cond
+                                    ((= speedmode 1) (set 'speedmode 4))
+                                    ((= speedmode 2) (set 'speedmode 1))
+                                    ((= speedmode 4) (set 'speedmode 2))
                                 )
-                                (if (or (= speedmode 4))
-                                    (setvar 'speedmode 2)
-                                )
-                            )
+                                (apply-mode)
+                            }
                         )
-                        (apply-mode)
-                    )
+                    }
                 )
-            )
+            }
         )
     )
 )
 
 (defun handle-holding-button()
-    (progn
+    {
         (if (= (+ lock off) 0) ; it is locked and off?
-            (progn
-                (setvar 'unlock 0) ; Disable unlock on turn off
+            {
+                (set 'unlock 0) ; Disable unlock on turn off
                 (apply-mode)
-                (setvar 'off 1) ; turn off
-                (setvar 'feedback 1) ; beep feedback
-            )
+                (set 'off 1) ; turn off
+                (set 'light 0) ; turn off light
+                (set 'feedback 1) ; beep feedback
+            }
         )
-    )
+    }
 )
 
 (defun reset-button()
-    (progn
-        (setvar 'presstime (systime)) ; reset press time again
-        (setvar 'presses 0)
-    )
+    {
+        (set 'presstime (systime)) ; reset press time again
+        (set 'presses 0)
+    }
 )
 
 ; Speed mode implementation
@@ -306,72 +312,122 @@
 (defun apply-mode()
     (if (= unlock 0)
         (if (= speedmode 1)
-            (configure-speed drive-speed drive-watts drive-current)
+            (configure-speed drive-speed drive-watts drive-current drive-fw)
             (if (= speedmode 2)
-                (configure-speed eco-speed eco-watts eco-current)
+                (configure-speed eco-speed eco-watts eco-current eco-fw)
                 (if (= speedmode 4)
-                    (configure-speed sport-speed sport-watts sport-current)
+                    (configure-speed sport-speed sport-watts sport-current sport-fw)
                 )
             )
         )
         (if (= speedmode 1)
-            (configure-speed secret-drive-speed secret-drive-watts secret-drive-current)
+            (configure-speed secret-drive-speed secret-drive-watts secret-drive-current secret-drive-fw)
             (if (= speedmode 2)
-                (configure-speed secret-eco-speed secret-eco-watts secret-eco-current)
+                (configure-speed secret-eco-speed secret-eco-watts secret-eco-current secret-eco-fw)
                 (if (= speedmode 4)
-                    (configure-speed secret-sport-speed secret-sport-watts secret-sport-current)
+                    (configure-speed secret-sport-speed secret-sport-watts secret-sport-current secret-sport-fw)
                 )
             )
         )
     )
 )
 
-(defun configure-speed(speed watts current)
-    (progn
-        (conf-set 'max-speed speed)
-        (conf-set 'l-watt-max watts)
-        (conf-set 'l-current-max-scale current)
-    )
+(defun configure-speed(speed watts current fw)
+    {
+        (set-param 'max-speed speed)
+        (set-param 'l-watt-max watts)
+        (set-param 'l-current-max-scale current)
+        (set-param 'foc-fw-current-max fw)
+    }
+)
+
+(defun set-param (param value)
+    {
+        (conf-set param value)
+        (loopforeach id (can-list-devs)
+            (looprange i 0 5 {
+                (if (eq (rcode-run id 0.1 `(conf-set (quote ,param) ,value)) t) (break t))
+                false
+            })
+        )
+    }
+)
+
+(defun l-speed()
+    {
+        (var l-speed (get-speed))
+        (loopforeach i (can-list-devs)
+            {
+                (var l-can-speed (canget-speed i))
+                (if (< l-can-speed l-speed)
+                    (set 'l-speed l-can-speed)
+                )
+            }
+        )
+
+        l-speed
+    }
+)
+
+(defun button-logic()
+    {
+        ; Assume button is not pressed by default
+        (var buttonold 0)
+        (loopwhile t
+            {
+                (var button (gpio-read 'pin-rx))
+                (sleep 0.05) ; wait 50 ms to debounce
+                (var buttonconfirm (gpio-read 'pin-rx))
+                (if (not (= button buttonconfirm))
+                    (set 'button 0)
+                )
+                
+                (if (> buttonold button)
+                    {
+                        (set 'presses (+ presses 1))
+                        (set 'presstime (systime))
+                    }
+                    (button-apply button)
+                )
+                
+                (set 'buttonold button)
+                (handle-features)
+            }
+        )
+    }
+)
+
+(defun button-apply(button)
+    {
+        (var time-passed (- (systime) presstime))
+        (var is-active (or (= off 1) (<= (get-speed) button-safety-speed)))
+
+        (if (> time-passed 2500) ; after 2500 ms
+            (if (= button 0) ; check button is still pressed
+                (if (> time-passed 6000) ; long press after 6000 ms
+                    {
+                        (if is-active
+                            (handle-holding-button)
+                        )
+                        (reset-button) ; reset button
+                    }
+                )
+                (if (> presses 0) ; if presses > 0
+                    {
+                        (if is-active
+                            (handle-button) ; handle button presses
+                        )
+                        (reset-button) ; reset button
+                    }
+                )
+            )
+        )
+    }
 )
 
 ; Apply mode on start-up
 (apply-mode)
 
 ; Spawn UART reading frames thread
-(spawn 150 read-frames) 
-
-(loopwhile t
-    (progn
-        (if (> buttonold (gpio-read 'pin-rx))
-            (progn
-                (setvar 'presses (+ presses 1))
-                (setvar 'presstime (systime))
-            )
-            (if (> (- (systime) presstime) 2500) ; after 2500 ms
-                (if (= (gpio-read 'pin-rx) 0) ; check button is still pressed
-                    (if (> (- (systime) presstime) 6000) ; long press after 6000 ms
-                        (progn
-                            (if (<= (get-speed) button-safety-speed)
-                                (handle-holding-button)
-                            )
-                            (reset-button) ; reset button
-                        )
-                    )
-                    (progn ; when button not pressed
-                        (if (> presses 0) ; if presses > 0
-                            (progn
-                                (if (<= (get-speed) button-safety-speed)
-                                    (handle-button) ; handle button presses
-                                )
-                                (reset-button) ; reset button
-                            )
-                        )
-                    )
-                )
-            )
-        )
-
-        (setvar 'buttonold (gpio-read 'pin-rx))
-        (sleep 0.05) ; Recude load on the CPU
-    )
-)
+(spawn 150 read-frames)
+(button-logic) ; Start button logic in main thread - this will block the main thread
