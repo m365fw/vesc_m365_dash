@@ -10,14 +10,9 @@ Read one of the guides below to get started.
 
 ## Which version should I use?
 
-If you are running **VESC 6.02**, use these:
+If you are running **VESC 6.05**, use these:
 - **M365**: https://github.com/m365fw/vesc_m365_dash/blob/main/m365_dash.lisp
 - **G30**: https://github.com/m365fw/vesc_m365_dash/blob/main/g30_dash.lisp
-- **How-To** Video: None (Use the more detailed guides linked above)
-
-when you are running **VESC 6.05 BETA**, use these:
-- **M365**: https://github.com/m365fw/vesc_m365_dash/blob/6_05_adc/m365_dash.lisp
-- **G30** https://github.com/m365fw/vesc_m365_dash/blob/6_05_adc/g30_dash.lisp
 - **How-To** Video: https://www.youtube.com/watch?v=kX8PsaxfoXQ
 
 ## How do I wire it?
@@ -29,15 +24,14 @@ when you are running **VESC 6.05 BETA**, use these:
 
 ![image](guide/imgs/23999.png)
 
-## Implemented
-- [x] Add speed modes (double tap on button)
-- [x] Add secret speed mode (hold throttle and brake, double press)
-- [x] Add lock mode with beeping and braking (double press while braking)
-- [x] Add min-speed feature (makes it more secure)
-- [x] Add shutdown feature (turn it off by long press and back on by single tap)
-- [x] Add battery in idle feature
-- [x] Add separate ADC version
-- [x] Add temperature notification icon (60°C)
+## Features
+- [x] Multiple speed modes (Press twice)
+- [x] Secret speed modes (Hold throttle and brake and press twice)
+- [x] Lock mode with beeping and braking (Press twice while holding break)
+- [x] Motor start speed feature (More secure)
+- [x] Shutdown feature (Long press to turn off)
+- [x] Battery Idle % on Secret Sport Mode
+- [x] Temperature notification icon at 60°C
 
 Features to be added:
 - [ ] App communication
@@ -72,7 +66,7 @@ Features to be added:
     - and many more... use whatever you like.
 
 #### Requirements on VESC
-Requires 6.2 VESC firmware. \
+Requires 6.05 VESC firmware. \
 Can be found here: https://vesc-project.com/
 
 ## Worth to check out!
