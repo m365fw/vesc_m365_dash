@@ -1,8 +1,7 @@
-; M365 dashboard compability lisp script v0.9 by Netzpfuscher and 1zuna
+; M365 dashboard compability lisp script v1.0 by Netzpfuscher and 1zuna
 ; UART Wiring: red=5V black=GND yellow=COM-TX (UART-HDX) green=COM-RX (button)+3.3V with 1K Resistor
 ; Guide (German): https://rollerplausch.com/threads/vesc-controller-einbau-1s-pro2-g30.6032/
-; Tested on VESC 6.05 on PRO2 w/ MP2 300A VESC
-
+ 
 ; -> User parameters (change these to your needs)
 (def software-adc 1)
 (def min-adc-throttle 0.1)
