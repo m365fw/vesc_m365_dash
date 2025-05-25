@@ -1,6 +1,9 @@
 # VESC M365 Dash
 Allows you to connect your XIAOMI or NINEBOT display to VESC controller.
 
+# Important notice regarding VESC 6.05 and earlier versions:
+You need VESC 6.06 BETA now! The script uses the [code server library](https://github.com/vedderb/vesc_pkg/blob/main/lib_code_server/code_server.lisp). Unfortunately, three weeks ago, @vedderb pushed a [commit](https://github.com/vedderb/vesc_pkg/commit/341e7a86c042d01deb133b2aacf03288725c2e02) that broke compatibility with VESC 6.05, meaning my script cannot be executed on 6.05 either. To use this script, either upgrade to VESC 6.06 or find a way to use an older version of the Code Server PKG library.
+
 ## How
 Do you want to use your Xiaomi or NineBot BLE with a VESC controller? This is the right place for you! \
 Read one of the guides below to get started.
