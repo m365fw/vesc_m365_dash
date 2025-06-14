@@ -9,7 +9,7 @@
 (def min-adc-brake 0.1)
 
 (def show-batt-in-idle 1)
-(def min-speed 1)
+(def min-speed (/ 1 3.6))
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
 ; Speed modes (km/h, watts, current scale)
@@ -21,7 +21,7 @@
 (def drive-current 0.7)
 (def drive-watts 500)
 (def drive-fw 0)
-(def sport-speed (/ 21 3.6))
+(def sport-speed (/ 22 3.6))
 (def sport-current 1.0)
 (def sport-watts 700)
 (def sport-fw 0)
@@ -29,12 +29,12 @@
 ; Secret speed modes. To enable, press the button 2 times while holding break and throttle at the same time.
 (def secret-enabled 1)
 (def secret-eco-speed (/ 27 3.6))
-(def secret-eco-current 0.8)
+(def secret-eco-current 1.0)
 (def secret-eco-watts 1200)
 (def secret-eco-fw 0)
 (def secret-drive-speed (/ 47 3.6))
-(def secret-drive-current 0.9)
-(def secret-drive-watts 1500)
+(def secret-drive-current 1.0)
+(def secret-drive-watts 1500000)
 (def secret-drive-fw 0)
 (def secret-sport-speed (/ 1000 3.6)) ; 1000 km/h easy
 (def secret-sport-current 1.0)
@@ -104,7 +104,7 @@
 
 (defun handle-features()
     {
-        (if (or (or (= off 1) (= lock 1) (< (* (get-speed) 3.6) min-speed)))
+        (if (or (or (= off 1) (= lock 1) (< (abs (get-speed)) min-speed)))
             (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
                 {
                     (app-adc-override 0 0)
@@ -125,7 +125,7 @@
         (if (= lock 1)
             {
                 (set-current-rel 0) ; No current input when locked
-                (if (> (* (get-speed) 3.6) min-speed)
+                (if (> (abs (get-speed)) min-speed)
                     (set-brake-rel 1) ; Full power brake
                     (set-brake-rel 0) ; No brake
                 )
@@ -376,7 +376,7 @@
         (loopwhile t
             {
                 (var button (gpio-read 'pin-rx))
-                (sleep 0.05) ; wait 50 ms to debounce
+                (sleep 0.025) ; wait 25 ms to debounce
                 (var buttonconfirm (gpio-read 'pin-rx))
                 (if (not (= button buttonconfirm))
                     (set 'button 0)
