@@ -9,7 +9,7 @@
 (def min-adc-brake 0.1)
 
 (def show-batt-in-idle 1)
-(def min-speed (/ 1 3.6))
+(def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
 ; Speed modes (km/h, watts, current scale)
@@ -69,6 +69,7 @@
 (def speedmode 4)
 (def light 0)
 (def unlock 0)
+(def alarm 0)
 
 ; Sound feedback
 
@@ -81,8 +82,7 @@
 
 (defun adc-input(buffer) ; Frame 0x65
     {
-        (let ((current-speed (* (get-speed) 3.6))
-            (throttle (/(bufget-u8 uart-buf 5) 77.2)) ; 255/3.3 = 77.2
+        (let ((throttle (/(bufget-u8 uart-buf 5) 77.2)) ; 255/3.3 = 77.2
             (brake (/(bufget-u8 uart-buf 6) 77.2)))
             {
                 (if (< throttle 0)
@@ -104,13 +104,16 @@
 
 (defun handle-features()
     {
-        (if (or (or (= off 1) (= lock 1) (< (abs (get-speed)) min-speed)))
+        (var current-speed (abs (* (l-speed) 3.6)))
+
+        (if (or (or (= off 1) (= lock 1) (< current-speed min-speed)))
             (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
                 {
                     (app-adc-override 0 0)
                     (app-adc-override 1 0)
                     (app-disable-output -1)
                     (set-current 0)
+                    ; rcode canset
                     ;(loopforeach i (can-list-devs)
                     ;    (canset-current i 0)
                     ;)
@@ -121,22 +124,14 @@
                 (app-disable-output 0)
             )
         )
-        
-        (if (= lock 1)
-            {
-                (set-current-rel 0) ; No current input when locked
-                (if (> (abs (get-speed)) min-speed)
-                    (set-brake-rel 1) ; Full power brake
-                    (set-brake-rel 0) ; No brake
-                )
-            }
-        )
+
+        (handle-lock current-speed)
     }
 )
 
 (defun update-dash(buffer) ; Frame 0x64
     {
-        (var current-speed (* (l-speed) 3.6))
+        (var current-speed (abs (* (l-speed) 3.6)))
         (var battery (*(get-batt) 100))
 
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
@@ -152,38 +147,44 @@
         )
                 
         ; batt field
-        (bufset-u8 tx-frame 8 battery)
+        (if (= lock 1)
+            (bufset-u8 tx-frame 8 0) ; lock display
+            (bufset-u8 tx-frame 8 battery)
+        )
 
         ; light field
         (if (= off 0)
-            (bufset-u8 tx-frame 9 light)
+            (if (= alarm 1)
+                (bufset-u8 tx-frame 9 1) ; alarm on
+                (bufset-u8 tx-frame 9 light)
+            )
             (bufset-u8 tx-frame 9 0)
         )
                 
         ; beep field
-        (if (= lock 1)
-            (if (> current-speed min-speed)
-                (bufset-u8 tx-frame 10 1) ; beep lock
-                (bufset-u8 tx-frame 10 0))
-            (if (> feedback 0)
-                {
-                    (bufset-u8 tx-frame 10 1)
-                    (set 'feedback (- feedback 1))
-                }
-                (bufset-u8 tx-frame 10 0)
-            )
+        (if (> feedback 0)
+            {
+                (bufset-u8 tx-frame 10 1)
+                (set 'feedback (- feedback 1))
+            }
+            (bufset-u8 tx-frame 10 0)
         )
 
-        ; speed field
-        (if (= (+ show-batt-in-idle unlock) 2)
-            (if (> current-speed 1)
+        (if (= lock 1)
+            (bufset-u8 tx-frame 11 0) ; lock display
+            (if (= (+ show-batt-in-idle unlock) 2)
+                (if (> current-speed 1)
+                    (bufset-u8 tx-frame 11 current-speed)
+                    (bufset-u8 tx-frame 11 battery))
                 (bufset-u8 tx-frame 11 current-speed)
-                (bufset-u8 tx-frame 11 battery))
-            (bufset-u8 tx-frame 11 current-speed)
+            )
         )
-                
+        
         ; error field
-        (bufset-u8 tx-frame 12 (get-fault))
+        (if (> alarm 0)
+            (bufset-u8 tx-frame 12 99) ; alarm active
+            (bufset-u8 tx-frame 12 (get-fault))
+        )
 
         ; calc crc
 
@@ -250,7 +251,11 @@
                 (apply-mode) ; Apply mode on start-up
                 (stats-reset) ; reset stats when turning on
             }
-            (set 'light (bitwise-xor light 1)) ; toggle light
+            (if (= lock 1) ; is it locked?
+                (set 'feedback 1) ; beep feedback
+                (set 'light (bitwise-xor light 1)) ; toggle light
+            )
+            
         )
         (if (>= presses 2) ; double press
             {
@@ -265,6 +270,7 @@
                             (set 'unlock 0)
                             (apply-mode)
                             (set 'lock (bitwise-xor lock 1)) ; lock on or off
+                            (set 'light 0) ; turn off light when locking
                             (set 'feedback 1) ; beep feedback
                         }
                     )
@@ -349,6 +355,70 @@
                 (if (eq (rcode-run id 0.1 `(conf-set (quote ,param) ,value)) t) (break t))
                 false
             })
+        )
+    }
+)
+
+(defun handle-lock(speed)
+    {
+        (if (and (= lock 1) (> speed 0.5)) ; only trigger alarm when locked and moving
+            (if (= alarm 0) ; do not reset count
+                (set 'alarm 1)
+            )
+            (if (> alarm 0)
+                (set 'alarm 4)
+            )
+        )
+
+        (if (= lock 1)
+            (set-current-rel 0) ; No current input when locked
+        )
+
+        (if (> alarm 0)
+            (set-brake-rel 1) ; Full power brake
+            (set-brake-rel 0) ; No brake
+        )
+
+        (cond 
+            ((= alarm 1) ; first tone
+                {
+                    (foc-play-tone 0 4000 24)
+                    (loopforeach id (can-list-devs)
+                        (rcode-run-noret id '(foc-play-tone 0 4000 24))
+                    )
+                    
+                    (set 'feedback 1)
+                    (set 'alarm 2)
+                }
+            )
+            ((= alarm 2) ; second tone
+                {
+                    (foc-play-tone 1 2000 24)
+                    (loopforeach id (can-list-devs)
+                        (rcode-run-noret id '(foc-play-tone 1 2000 24))
+                    )
+                    (set 'alarm 3)
+                }
+            
+            )
+            ((= alarm 3) ; repeat alarm sound
+                {
+                    (set 'alarm 1) ; reset alarm to 1
+                    (loopforeach id (can-list-devs)
+                        (rcode-run-noret id '(foc-play-stop))
+                    )
+                    (foc-play-stop)
+                }
+            )
+            ((= alarm 4) ; return to normal state
+                {
+                    (set 'alarm 0)
+                    (loopforeach id (can-list-devs)
+                        (rcode-run-noret id '(foc-play-stop))
+                    )
+                    (foc-play-stop)
+                }
+            )
         )
     }
 )
