@@ -106,7 +106,7 @@
 
 (defun handle-features()
     {
-        (var current-speed (abs (* (get-lowest-speed) 3.6)))
+        (var current-speed (* (get-lowest-speed) 3.6))
 
         (if (or (or (= off 1) (= lock 1) (< current-speed min-speed)))
             (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
@@ -127,7 +127,7 @@
             )
         )
 
-        (handle-lock current-speed)
+        (handle-lock (abs current-speed))
     }
 )
 
@@ -298,11 +298,11 @@
     {
         (if (= (+ lock off) 0) ; it is locked and off?
             {
+                (set 'light 0) ; turn off light
+                (set 'feedback 1) ; beep feedback
                 (set 'unlock 0) ; Disable unlock on turn off
                 (apply-mode)
                 (set 'off 1) ; turn off
-                (set 'light 0) ; turn off light
-                (set 'feedback 1) ; beep feedback
             }
         )
     }
@@ -384,7 +384,7 @@
             (set-current-rel 0) ; No current input when locked
         )
 
-        (if (> alarm 0)
+        (if (and (> alarm 0) (> speed 0.0))
             (set-brake-rel 1) ; Full power brake
             (set-brake-rel 0) ; No brake
         )
@@ -485,7 +485,7 @@
         (loopwhile t
             {
                 (var button (gpio-read 'pin-rx))
-                (sleep 0.05) ; wait 50 ms to debounce
+                (sleep 0.03) ; wait 30 ms to debounce
                 (var buttonconfirm (gpio-read 'pin-rx))
                 (if (not (= button buttonconfirm))
                     (set 'button 0)
