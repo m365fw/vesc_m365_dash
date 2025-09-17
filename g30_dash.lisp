@@ -7,7 +7,8 @@
 (def software-adc 1)
 (def min-adc-throttle 0.1)
 (def min-adc-brake 0.1)
-
+(def temp-warning-motor 100) ; temperature warning for motor in degree celsius
+(def temp-warning-fet 80) ; temperature warning for fet in degree celsius
 (def show-batt-in-idle 1)
 (def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
@@ -140,7 +141,7 @@
             (bufset-u8 tx-frame 7 16)
             (if (= lock 1)
                 (bufset-u8 tx-frame 7 32) ; lock display
-                (if (or (> (get-temp-fet) 60) (> (get-temp-mot) 60)) ; temp icon will show up above 60 degree
+                (if (or (> (get-temp-fet) temp-warning-fet) (> (get-temp-mot) temp-warning-motor)) ; temp icon will show up above warning degree
                     (bufset-u8 tx-frame 7 (+ 128 speedmode))
                     (bufset-u8 tx-frame 7 speedmode)
                 )            
