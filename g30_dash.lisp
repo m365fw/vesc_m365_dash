@@ -70,6 +70,7 @@
 (def light 0)
 (def unlock 0)
 (def alarm 0)
+(def alarm-time 0)
 
 ; Sound feedback
 
@@ -361,11 +362,28 @@
 
 (defun handle-lock(speed)
     {
-        (if (and (= lock 1) (> speed 0.5)) ; only trigger alarm when locked and moving
-            (if (= alarm 0) ; do not reset count
-                (set 'alarm 1)
+        (var gyro (get-gyro))
+
+        (cond 
+            ((and (= lock 1) (or (> (abs (ix gyro 0)) 10) (> (abs (ix gyro 1)) 10) (> (abs (ix gyro 2)) 10))) ; locked and moving
+                (if (= alarm 0) ; do not reset count
+                    {
+                        (set 'alarm 1)
+                        (set 'alarm-time (systime))
+                    }
+                )
             )
-            (if (> alarm 0)
+            ((and (= lock 1) (> speed 0.5))
+                (if (= alarm 0) ; do not reset count
+                    {
+                        (set 'alarm 1)
+                        (set 'alarm-time (systime))
+                    }
+                )
+            )
+
+            ; not locked or not moving
+            ((and (or (= lock 0) (> (secs-since alarm-time) 3)) (> alarm 0))
                 (set 'alarm 4)
             )
         )
@@ -436,6 +454,35 @@
         )
 
         l-speed
+    }
+)
+
+; finds gyro that does not respond with (0,0,0)
+(defunret get-gyro()
+    {
+        (var gyro (get-imu-gyro))
+        (if (and (= (length gyro) 3)
+                (or (> (abs (ix gyro 0)) 0) 
+                (> (abs (ix gyro 1)) 0) 
+                (> (abs (ix gyro 2)) 0)))
+            (return gyro)
+        )
+
+        (loopforeach i (can-list-devs)
+            {
+                (var can-gyro (rcode-run i 0.5 '(get-imu-gyro)))
+
+                (if (and (eq (type-of can-gyro) 'type-list)
+                        (= (length can-gyro) 3)
+                        (or (> (abs (ix can-gyro 0)) 0) 
+                        (> (abs (ix can-gyro 1)) 0) 
+                        (> (abs (ix can-gyro 2)) 0)))
+                    (return can-gyro)
+                )
+            }
+        )
+
+        gyro
     }
 )
 
