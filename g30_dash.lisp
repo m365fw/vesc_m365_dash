@@ -106,7 +106,7 @@
 
 (defun handle-features()
     {
-        (var current-speed (abs (* (l-speed) 3.6)))
+        (var current-speed (abs (* (get-lowest-speed) 3.6)))
 
         (if (or (or (= off 1) (= lock 1) (< current-speed min-speed)))
             (if (not (app-is-output-disabled)) ; Disable output when scooter is turned off
@@ -133,7 +133,7 @@
 
 (defun update-dash(buffer) ; Frame 0x64
     {
-        (var current-speed (abs (* (l-speed) 3.6)))
+        (var current-speed (abs (* (get-lowest-speed) 3.6)))
         (var battery (*(get-batt) 100))
 
         ; mode field (1=drive, 2=eco, 4=sport, 8=charge, 16=off, 32=lock)
@@ -316,26 +316,17 @@
 )
 
 ; Speed mode implementation
-
 (defun apply-mode()
     (if (= unlock 0)
-        (if (= speedmode 1)
-            (configure-speed drive-speed drive-watts drive-current drive-fw)
-            (if (= speedmode 2)
-                (configure-speed eco-speed eco-watts eco-current eco-fw)
-                (if (= speedmode 4)
-                    (configure-speed sport-speed sport-watts sport-current sport-fw)
-                )
-            )
+        (cond
+            ((= speedmode 1) (configure-speed drive-speed drive-watts drive-current drive-fw))
+            ((= speedmode 2) (configure-speed eco-speed eco-watts eco-current eco-fw))
+            ((= speedmode 4) (configure-speed sport-speed sport-watts sport-current sport-fw))
         )
-        (if (= speedmode 1)
-            (configure-speed secret-drive-speed secret-drive-watts secret-drive-current secret-drive-fw)
-            (if (= speedmode 2)
-                (configure-speed secret-eco-speed secret-eco-watts secret-eco-current secret-eco-fw)
-                (if (= speedmode 4)
-                    (configure-speed secret-sport-speed secret-sport-watts secret-sport-current secret-sport-fw)
-                )
-            )
+        (cond
+            ((= speedmode 1) (configure-speed secret-drive-speed secret-drive-watts secret-drive-current secret-drive-fw))
+            ((= speedmode 2) (configure-speed secret-eco-speed secret-eco-watts secret-eco-current secret-eco-fw))
+            ((= speedmode 4) (configure-speed secret-sport-speed secret-sport-watts secret-sport-current secret-sport-fw))
         )
     )
 )
@@ -349,7 +340,7 @@
     }
 )
 
-(defun set-param (param value)
+(defun set-param(param value)
     {
         (conf-set param value)
         (loopforeach id (can-list-devs)
@@ -442,19 +433,19 @@
     }
 )
 
-(defun l-speed()
+(defun get-lowest-speed()
     {
-        (var l-speed (get-speed))
+        (var speed (get-speed))
         (loopforeach i (can-list-devs)
             {
-                (var l-can-speed (canget-speed i))
-                (if (< l-can-speed l-speed)
-                    (set 'l-speed l-can-speed)
+                (var can-speed (canget-speed i))
+                (if (< can-speed speed)
+                    (set 'speed can-speed)
                 )
             }
         )
 
-        l-speed
+        speed
     }
 )
 
