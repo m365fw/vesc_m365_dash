@@ -13,6 +13,13 @@
 (def min-speed 1) ; minimum speed in km/h to enable throttle and brake
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
+; Alarm parameters (foc-play-tone)
+(def alarm-tone 1)
+(def alarm-speed-threshold 0.5) ; speed in km/h to trigger alarm
+(def alarm-gyro-threshold 10) ; change in degree/s to trigger alarm
+(def alarm-voltage 24) ; voltage for alarm sound, higher = louder
+;(def alarm-frequency) ; todo: not supported yet, lower = louder, current: 2=4000, 3=7000, 6=2000
+
 ; Speed modes (km/h, watts, current scale)
 (def eco-speed (/ 7 3.6))
 (def eco-current 0.6)
@@ -59,22 +66,21 @@
 (def uart-buf (array-create 64))
 
 ; Button handling
-
-(def presstime (systime))
+(def press-time (systime))
 (def presses 0)
 
 ; Mode states
-
 (def off 0)
 (def lock 0)
 (def speedmode 4)
 (def light 0)
 (def unlock 0)
+
+; alarm states
 (def alarm 0)
-(def alarm-time 0)
+(def alarm-time (systime))
 
-; Sound feedback
-
+; sound feedback
 (def feedback 0)
 
 (if (= software-adc 1)
@@ -120,7 +126,6 @@
                     ;    (canset-current i 0)
                     ;)
                 }
-                
             )
             (if (app-is-output-disabled) ; Enable output when scooter is turned on
                 (app-disable-output 0)
@@ -156,7 +161,7 @@
 
         ; light field
         (if (= off 0)
-            (if (= alarm 1)
+            (if (> alarm 4)
                 (bufset-u8 tx-frame 9 1) ; alarm on
                 (bufset-u8 tx-frame 9 light)
             )
@@ -274,6 +279,9 @@
                             (set 'lock (bitwise-xor lock 1)) ; lock on or off
                             (set 'light 0) ; turn off light when locking
                             (set 'feedback 1) ; beep feedback
+                            (if (= lock 0)
+                                (stop-alarm)
+                            )
                         }
                     )
                     {
@@ -310,7 +318,7 @@
 
 (defun reset-button()
     {
-        (set 'presstime (systime)) ; reset press time again
+        (set 'press-time (systime)) ; reset press time again
         (set 'presses 0)
     }
 )
@@ -352,83 +360,116 @@
     }
 )
 
+(defun start-alarm()
+    (if (= alarm 0)
+        {
+            (set 'alarm 1)
+            (set 'alarm-time (systime))
+            (print "Alarm started")
+        }
+    )
+)
+
+(defun stop-alarm()
+    (if (> alarm 0)
+        {
+            (set 'alarm 0)
+            (set-brake-rel 0)
+            (stop-tone)
+            (print "Alarm stopped")
+        }
+    )
+)
+
 (defun handle-lock(speed)
     {
+        ; alarm detection
         (var gyro (get-gyro))
-
         (cond 
-            ((and (= lock 1) (or (> (abs (ix gyro 0)) 10) (> (abs (ix gyro 1)) 10) (> (abs (ix gyro 2)) 10))) ; locked and moving
-                (if (= alarm 0) ; do not reset count
-                    {
-                        (set 'alarm 1)
-                        (set 'alarm-time (systime))
-                    }
-                )
+            ; gyro detects movement while locked
+            ((and (= lock 1) (or (> (abs (ix gyro 0)) alarm-gyro-threshold) (> (abs (ix gyro 1)) alarm-gyro-threshold) (> (abs (ix gyro 2)) alarm-gyro-threshold))) ; locked and moving
+                (start-alarm)
             )
-            ((and (= lock 1) (> speed 0.5))
-                (if (= alarm 0) ; do not reset count
-                    {
-                        (set 'alarm 1)
-                        (set 'alarm-time (systime))
-                    }
-                )
+            ; wheel is moving while locked
+            ((and (= lock 1) (> speed alarm-speed-threshold))
+                (start-alarm)
             )
-
-            ; not locked or not moving
-            ((and (or (= lock 0) (> (secs-since alarm-time) 3)) (> alarm 0))
-                (set 'alarm 4)
+            ; not locked or not moving (> 3 seconds)
+            ((or (= lock 0) (> (secs-since alarm-time) 3))
+                (stop-alarm)
             )
         )
 
+        ; lock power control
         (if (= lock 1)
-            (set-current-rel 0) ; No current input when locked
+            {
+                (set-current-rel 0) ; No current input when locked
+                (if (and (> alarm 0) (> speed 0.0))
+                    (set-brake-rel 1) ; Full power brake
+                    (set-brake-rel 0) ; No brake
+                )
+            }
         )
 
-        (if (and (> alarm 0) (> speed 0.0))
-            (set-brake-rel 1) ; Full power brake
-            (set-brake-rel 0) ; No brake
-        )
-
-        (cond 
-            ((= alarm 1) ; first tone
+        ; alarm sound handling
+        (cond
+            ((= alarm 2) ; first tone
                 {
-                    (foc-play-tone 0 4000 24)
-                    (loopforeach id (can-list-devs)
-                        (rcode-run-noret id '(foc-play-tone 0 4000 24))
+                    (if (= alarm-tone 1)
+                        (play-tone 0 4000 alarm-voltage)
                     )
-                    
                     (set 'feedback 1)
-                    (set 'alarm 2)
                 }
             )
-            ((= alarm 2) ; second tone
+            ((= alarm 3) ; second tone
                 {
-                    (foc-play-tone 1 2000 24)
-                    (loopforeach id (can-list-devs)
-                        (rcode-run-noret id '(foc-play-tone 1 2000 24))
+                    (if (= alarm-tone 1)
+                        (play-tone 2 7000 alarm-voltage)
                     )
-                    (set 'alarm 3)
+                    (set 'feedback 1)
+                }
+            )
+            ((= alarm 6) ; third tone
+                {
+                    (if (= alarm-tone 1)
+                        (play-tone 1 2000 alarm-voltage)
+                    )
+                    (set 'feedback 1)
                 }
             
             )
-            ((= alarm 3) ; repeat alarm sound
+            ((= alarm 8) ; repeat alarm sound
                 {
+                    (if (= alarm-tone 1)
+                        (stop-tone)
+                    )
+                    (set 'feedback 1)
                     (set 'alarm 1) ; reset alarm to 1
-                    (loopforeach id (can-list-devs)
-                        (rcode-run-noret id '(foc-play-stop))
-                    )
-                    (foc-play-stop)
                 }
             )
-            ((= alarm 4) ; return to normal state
-                {
-                    (set 'alarm 0)
-                    (loopforeach id (can-list-devs)
-                        (rcode-run-noret id '(foc-play-stop))
-                    )
-                    (foc-play-stop)
-                }
-            )
+        )
+
+        ; count up alarm state
+        (if (> alarm 0)
+            (set 'alarm (+ alarm 1))
+        )
+    }
+)
+
+(defun play-tone(channel freq voltage)
+    {
+        (foc-play-tone channel freq voltage)
+        (loopforeach id (can-list-devs)
+            (rcode-run-noret id `(foc-play-tone ,channel ,freq ,voltage))
+        )
+    }
+)
+
+(defun stop-tone()
+    {
+        (foc-play-stop)
+        (loopforeach id (can-list-devs)
+            (rcode-run-noret id '(foc-play-stop))
         )
     }
 )
@@ -494,7 +535,7 @@
                 (if (> buttonold button)
                     {
                         (set 'presses (+ presses 1))
-                        (set 'presstime (systime))
+                        (set 'press-time (systime))
                     }
                     (button-apply button)
                 )
@@ -508,7 +549,7 @@
 
 (defun button-apply(button)
     {
-        (var time-passed (- (systime) presstime))
+        (var time-passed (- (systime) press-time))
         (var is-active (or (= off 1) (<= (get-speed) button-safety-speed)))
 
         (if (> time-passed 2500) ; after 2500 ms
