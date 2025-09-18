@@ -14,14 +14,11 @@
 (def button-safety-speed (/ 0.1 3.6)) ; disabling button above 0.1 km/h (due to safety reasons)
 
 ; Alarm parameters (foc-play-tone)
-(def alarm-tone 1) ; when buggy e.g. tone appears during driving, set this to 0
+(def alarm-tone 1)
 (def alarm-speed-threshold 0.5) ; speed in km/h to trigger alarm
-(def alarm-gyro-threshold 10) ; gyro threshold to trigger alarm
-(def alarm-voltage 24) ; voltage for alarm sound
-; Lower the frequency or increase the voltage for a louder sound,
-; however, this will cause the scooter to vibrate more.
-; todo: make frequencies parameter array (channel, frequency)
-; Current frequencies: 2=4000, 3=7000, 6=2000 (Hz)
+(def alarm-gyro-threshold 10) ; change in degree/s to trigger alarm
+(def alarm-voltage 24) ; voltage for alarm sound, higher = louder
+;(def alarm-frequency) ; todo: not supported yet, lower = louder, current: 2=4000, 3=7000, 6=2000
 
 ; Speed modes (km/h, watts, current scale)
 (def eco-speed (/ 7 3.6))
