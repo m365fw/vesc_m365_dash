@@ -390,7 +390,7 @@
         (var gyro (get-gyro))
         (cond 
             ; gyro detects movement while locked
-            ((and (= lock 1) (or (> (abs (ix gyro 0)) alarm-gyro-threshold) (> (abs (ix gyro 1)) alarm-gyro-threshold) (> (abs (ix gyro 2)) alarm-gyro-threshold)) ; locked and moving
+            ((and (= lock 1) (or (> (abs (ix gyro 0)) alarm-gyro-threshold) (> (abs (ix gyro 1)) alarm-gyro-threshold) (> (abs (ix gyro 2)) alarm-gyro-threshold))) ; locked and moving
                 (start-alarm)
             )
             ; wheel is moving while locked
