@@ -164,7 +164,7 @@
 
         ; light field
         (if (= off 0)
-            (if (= alarm 1)
+            (if (> alarm 4)
                 (bufset-u8 tx-frame 9 1) ; alarm on
                 (bufset-u8 tx-frame 9 light)
             )
